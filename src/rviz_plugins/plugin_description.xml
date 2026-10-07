@@ -1,0 +1,13 @@
+<library path="lib/librviz_plugins">
+  <class name="rviz_plugins/Goal3DTool" type="rviz::Goal3DTool" base_class_type="rviz::Tool">
+    <description>
+      Tool for setting 3D goal
+    </description>
+  </class>
+  <class name="rviz_plugins/NextStepPanel" type="rviz_plugins::NextStepPanel" base_class_type="rviz::Panel">
+    <description>
+      Panel for advancing to next step of SOF-BRRT
+    </description>
+  </class>
+
+</library>
