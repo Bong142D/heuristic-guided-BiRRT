@@ -1,5 +1,11 @@
 # C++ implementation and visualization of some sampling-based path planners
 
+> **Nguồn / Attribution:** Repository này dựa trên mã nguồn của
+> [ZJU-FAST-Lab/sampling-based-path-finding](https://github.com/ZJU-FAST-Lab/sampling-based-path-finding)
+> (MIT License, © 2022 ZJU FAST Lab — Hongkai Ye, Longji Yin và các tác giả khác),
+> kèm `mockamap` của William Wu. Code được giảng viên hướng dẫn cung cấp làm tài liệu tham khảo
+> cho đồ án *Hoạch định đường đi đa robot dựa vào lấy mẫu có định hướng*.
+
 ## Build & Run
 ### Build
 1. git clone git@github.com:ZJU-FAST-Lab/sampling-based-path-finding.git
