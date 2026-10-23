@@ -1,199 +1,112 @@
 # How To Run Code
 
-Các lệnh để build, chạy và sinh dataset, copy rồi dán vào terminal.
-Muốn hiểu code và paper thì đọc [docs/HUONG_DAN_RRT-FConnect.md](docs/HUONG_DAN_RRT-FConnect.md).
+Ubuntu 20.04 + ROS Noetic (Windows: WSL2). Mọi lệnh chạy trong terminal WSL.
+Giải thích code và paper: [docs/HUONG_DAN_RRT-FConnect.md](docs/HUONG_DAN_RRT-FConnect.md).
 
-> Môi trường: **Ubuntu 20.04 + ROS Noetic**. Trên Windows thì dùng **WSL2**.
-> Mọi lệnh dưới đây chạy **trong terminal WSL**.
+## Tình hình (23/10/2026)
 
----
+Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so với Table 2 của paper.
 
-## Tình hình hiện tại (cập nhật 23/10/2026)
+- [x] Môi trường, build, RViz
+- [x] Dataset: blobs/narrow × 10/20/40%, 30 bản đồ (file `dataset_maps_200x200.tar.gz`)
+- [x] Code thí nghiệm hàng loạt, branch `experiment-batch` (chờ review PR)
+- [ ] Chạy đầy đủ: đang chạy trên máy chính (blobs_10, blobs_20 xong; blobs_40 4/5)
+- [ ] So với Table 2
+- [ ] Hỏi GVHD: R_max (5 hay 10), chế độ exploration, class nào là EBi-RRT, mức narrow nào ứng với paper
+- [ ] Multi-Robot
 
-Mục tiêu trước mắt: **reproduce** paper RRT-FConnect, tức là chạy với tham số **Table 1** rồi so kết quả với **Table 2** (trang 9 và 11 của paper).
+Người mới: mục 1 → 2 → 3 → 4 → 5 (chạy thử) → review PR.
 
-| Bước | Trạng thái |
-|---|---|
-| Cài môi trường, build, xem thuật toán chạy trên RViz | ✅ Xong |
-| Sinh dataset: blobs 10/20/40%, narrow 10/20/40% (30 bản đồ) | ✅ Xong. Dùng chung file `dataset_maps_200x200.tar.gz`, xem mục 4 |
-| Sửa code để chạy thí nghiệm hàng loạt (branch **`experiment-batch`**) | ✅ Xong, **chờ review PR** |
-| Chạy đầy đủ (4 môi trường × 5 bản đồ × 20 cặp × 10 lần × 4 thuật toán) | 🔄 Đang chạy trên máy chạy chính. blobs_10 và blobs_20 xong, blobs_40 tới 3/5 |
-| So kết quả với Table 2, viết nhận xét | ⬜ Chờ chạy xong |
-| Hỏi GVHD: R_max (5 hay 10), chế độ exploration, class nào là EBi-RRT, mức narrow nào ứng với paper | ⬜ Chưa hỏi |
-| Mở rộng sang Multi-Robot | ⬜ Sau khi reproduce xong |
+## 1. Cài đặt
 
-**Bạn mới vào nhóm làm theo thứ tự:** mục 1 → 2 → 3 (xem RViz) → 4A (lấy dataset) → 6 (chạy thử nhỏ) → review PR `experiment-batch`.
-Thí nghiệm đầy đủ chỉ chạy trên **một máy** để số liệu thống nhất.
-
----
-
-## 1. Cài môi trường (làm 1 lần)
-
-**PowerShell (Windows):** cài Ubuntu 20.04 cho WSL. Bỏ qua nếu máy đã có.
 ```powershell
-wsl --install -d Ubuntu-20.04
+wsl --install -d Ubuntu-20.04          # PowerShell, bỏ qua nếu đã có
 ```
-
-**WSL:** cài ROS Noetic. Bỏ qua nếu thư mục `/opt/ros/noetic` đã có.
 ```bash
+# ROS Noetic, bỏ qua nếu đã có /opt/ros/noetic
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt install -y curl
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
 sudo apt update && sudo apt install -y ros-noetic-desktop-full
-```
 
-**WSL:** cài các gói project cần.
-```bash
 sudo apt install -y ros-noetic-pcl-ros ros-noetic-interactive-markers libeigen3-dev nlohmann-json3-dev git
 ```
 
----
+## 2. Clone và build
 
-## 2. Clone và build (làm 1 lần)
-
-> ⚠️ Clone vào **ổ của Linux** (`~`), **không** clone vào `/mnt/c/...`.
-> Nếu clone vào ổ Windows, symlink `src/CMakeLists.txt` sẽ hỏng và build báo `Parse error`.
+Clone vào `~`, không clone vào `/mnt/c` (symlink hỏng, build báo `Parse error`).
 
 ```bash
-cd ~
-git clone https://github.com/Bong142D/heuristic-guided-BiRRT.git
+cd ~ && git clone https://github.com/Bong142D/heuristic-guided-BiRRT.git
 cd ~/heuristic-guided-BiRRT
+git checkout experiment-batch
 chmod +x src/map_gen/map_generator/scripts/*.py
-
-# Dataset được sinh vào /home/huy/rrt/... (đường dẫn ghi cứng trong generate_dataset.py)
 sudo mkdir -p /home/huy/rrt && sudo chown $USER /home/huy/rrt
-
-source /opt/ros/noetic/setup.bash
-catkin_make
+source /opt/ros/noetic/setup.bash && catkin_make
 ```
 
-Tham số theo **Table 1 của paper** có sẵn ở [src/path_finder/config/paper_table1.json](src/path_finder/config/paper_table1.json), và được dùng mặc định.
-
-**Mỗi terminal mới** đều phải chạy 2 dòng này trước:
+Mỗi terminal mới:
 ```bash
-source /opt/ros/noetic/setup.bash
-source ~/heuristic-guided-BiRRT/devel/setup.bash
+source /opt/ros/noetic/setup.bash && source ~/heuristic-guided-BiRRT/devel/setup.bash
 ```
 
-Khi có code mới trên repo: chạy `cd ~/heuristic-guided-BiRRT && git pull && catkin_make`.
+Cập nhật code: `git pull && catkin_make`.
+Tham số mặc định: [src/path_finder/config/paper_table1.json](src/path_finder/config/paper_table1.json) (Table 1).
 
-> Code thí nghiệm hàng loạt (mục 6) đang ở nhánh **`experiment-batch`**, chưa merge vào `main`. Chuyển sang nhánh đó rồi build lại:
-> ```bash
-> cd ~/heuristic-guided-BiRRT && git fetch && git checkout experiment-batch && catkin_make
-> ```
-
----
-
-## 3. Chạy thử với bản đồ ngẫu nhiên (random forest)
-
-Mở 2 terminal, nhớ `source` 2 dòng ở trên trước.
+## 3. Chạy tương tác
 
 ```bash
-# Terminal 1: mở RViz
-roslaunch path_finder rviz.launch
+roslaunch path_finder rviz.launch                # terminal 1
+roslaunch path_finder test_planners.launch       # terminal 2, tự sinh bản đồ random forest
 ```
-```bash
-# Terminal 2: chạy planner, tự sinh kèm bản đồ random forest
-roslaunch path_finder test_planners.launch
-```
-Đợi tới khi terminal 2 in ra `glb occ set` là bản đồ đã nạp xong.
-
-**Đặt goal:** trong RViz chọn **Goal3DTool** (phím `g`), click chuột trái rồi thả ra ngay.
-Bản đồ random forest chỉ có vật cản trong vùng 100×100 ở giữa, nên chọn goal gần tâm.
-
-Cũng có thể đặt goal bằng lệnh, chạy ở một terminal khác:
-```bash
-rostopic pub -1 /goal geometry_msgs/PoseStamped '{header: {frame_id: "map"}, pose: {position: {x: 30.0, y: 20.0, z: 0.0}, orientation: {w: 1.0}}}'
-```
-
-Kết quả in ra ở terminal 2. Dòng `[SOFBRRTOpitmize*] Case3 final path len: ...` là của **RRT-FConnect**.
-
-**Xem từng bước** (tia, sector, APF): thêm `sof_brrt_step_mode:=true` vào lệnh ở terminal 2. Bấm khối xanh **NEXT STEP** trong RViz để chạy tiếp.
-
----
+- Đợi terminal 2 in `glb occ set`.
+- Đặt goal: trong RViz chọn Goal3DTool (phím `g`), click rồi thả. Nên chọn gần tâm bản đồ.
+- Hoặc đặt goal bằng lệnh:
+  ```bash
+  rostopic pub -1 /goal geometry_msgs/PoseStamped '{header: {frame_id: "map"}, pose: {position: {x: 30, y: 20, z: 0}, orientation: {w: 1}}}'
+  ```
+- Dòng kết quả của RRT-FConnect: `[SOFBRRTOpitmize*] Case3 final path len`.
+- Chạy từng bước: thêm `sof_brrt_step_mode:=true`, rồi bấm NEXT STEP trong RViz.
+- Dùng bản đồ dataset thay cho random forest: thêm `map_file:=/home/huy/rrt/dataset_maps_200x200/blobs_10/map_0.pcd`.
 
 ## 4. Dataset
 
-### 4A. Dùng dataset chung (khuyên dùng, mất 1 phút)
-Cả nhóm dùng chung một dataset để kết quả so được với nhau. Xin file `dataset_maps_200x200.tar.gz` (khoảng 2 MB) từ nhóm, rồi copy vào home của WSL. Trong File Explorer, thư mục đó là `\\wsl$\Ubuntu-20.04\home\<tên_user>\`. Sau đó chạy:
+Dùng file chung (khuyên dùng). Copy `dataset_maps_200x200.tar.gz` vào `\\wsl$\Ubuntu-20.04\home\<user>\`, rồi chạy:
 ```bash
-sudo mkdir -p /home/huy/rrt && sudo chown $USER /home/huy/rrt
 tar -xzf ~/dataset_maps_200x200.tar.gz -C /home/huy/rrt
-ls /home/huy/rrt/dataset_maps_200x200/   # thấy blobs_10 blobs_20 blobs_40 narrow_10 narrow_20 narrow_40
 ```
 
-### 4B. Tự sinh dataset mới (chỉ khi cần bộ bản đồ khác)
-Bản đồ được sinh ngẫu nhiên, nên dataset tự sinh sẽ **khác** dataset chung.
-
-Paper chỉ dùng **blobs** (10/20/40%) và **narrow**. Script sinh lần lượt `blobs` → `narrow` → `flappy` → `rooms`, mỗi mức 5 bản đồ, mỗi bản đồ 20 cặp start/goal.
-
+Tự sinh (bản đồ ngẫu nhiên nên sẽ khác bộ chung; mất vài giờ, Ctrl+C khi `narrow_40` đủ 5 bản đồ):
 ```bash
-# Terminal 1
-roscore
+roscore                                          # terminal 1
+cd ~/heuristic-guided-BiRRT && python3 generate_dataset.py   # terminal 2
 ```
-```bash
-# Terminal 2
-cd ~/heuristic-guided-BiRRT
-python3 generate_dataset.py
-```
-- Có thể mất **vài giờ**, và máy phải để không sleep.
-- Khi thư mục `narrow_40` đủ 5 file `.pcd` thì có thể Ctrl+C, vì flappy và rooms paper không dùng.
-- Kiểm tra tiến độ: `ls /home/huy/rrt/dataset_maps_200x200/*/`
 
-Kết quả nằm ở `/home/huy/rrt/dataset_maps_200x200/<loại>_<mức>/`, gồm các file `map_0.pcd … map_4.pcd` và `map_i_scenarios.json`.
+Mỗi bản đồ gồm `map_i.pcd` và `map_i_scenarios.json` (20 cặp start/goal).
 
----
+## 5. Thí nghiệm hàng loạt
 
-## 5. Chạy planner trên một bản đồ của dataset
-
-```bash
-# Terminal 1
-roslaunch path_finder rviz.launch
-```
-```bash
-# Terminal 2: đổi blobs_10 / map_0 sang bản đồ muốn chạy
-roslaunch path_finder test_planners.launch map_file:=/home/huy/rrt/dataset_maps_200x200/blobs_10/map_0.pcd
-```
-Sau đó đặt goal giống như ở mục 3.
-
----
-
-## 6. Chạy thí nghiệm hàng loạt (Table 2)
-
-Không cần RViz. Chỉ cần 1 terminal đã `source`.
-
-**Chạy thử nhỏ trước** (khoảng vài giây) để chắc mọi thứ chạy được:
 ```bash
 cd ~/heuristic-guided-BiRRT
+
+# chạy thử, vài giây
 python3 run_dataset_experiments.py --envs blobs_10 --maps 1 --max-scenarios 2 --trials 2 --out ~/rrt_results/quicktest
 python3 analyze_results.py ~/rrt_results/quicktest
-```
 
-**Chạy đầy đủ như paper** (4 môi trường × 5 bản đồ × 20 cặp × 10 lần):
-```bash
-cd ~/heuristic-guided-BiRRT
-python3 run_dataset_experiments.py --trials 10
+# đầy đủ: blobs_10/20/40 + narrow_10, 5 bản đồ × 20 cặp × 10 lần; mất vài giờ
+python3 run_dataset_experiments.py --trials 10 --out ~/rrt_results/full
+python3 analyze_results.py ~/rrt_results/full
 ```
-- Lệnh này in ra thư mục kết quả, dạng `~/rrt_results/<ngày_giờ>`.
-- Mặc định chạy `blobs_10 blobs_20 blobs_40 narrow_10`. Đổi bằng `--envs ...`.
 - Chạy lại cùng `--out` thì bản đồ nào đã xong sẽ được bỏ qua.
-- Bản đồ nào báo `FAILED` thì mở file log `~/rrt_results/<ngày_giờ>/<env>/map_i.log` để xem lỗi.
+- Bản đồ báo `FAILED` thì xem log `<out>/<env>/map_i.log`.
 
-**Xem kết quả**, ra bảng giống Table 2, kèm số liệu của paper:
-```bash
-python3 analyze_results.py ~/rrt_results/<ngày_giờ>
-```
+## Lỗi thường gặp
 
----
-
-## Lỗi hay gặp
-
-| Lỗi | Cách sửa |
+| Lỗi | Sửa |
 |---|---|
-| `CMake Error ... Parse error` khi chạy `catkin_make` | Đang build trong `/mnt/c`. Clone lại vào `~` như mục 2 |
-| Terminal planner cứ in mãi `no map rcved yet` | Đường dẫn `map_file` sai (mục 5) |
-| RViz không có Goal3DTool | Mở RViz khi chưa `source devel/setup.bash`. Tắt RViz, `source` lại rồi mở lại |
-| Mục 6 báo `map_i: FAILED`, log ghi `Couldn't find ...` hoặc lỗi param | Chưa `catkin_make` sau khi đổi sang nhánh `experiment-batch`, hoặc terminal chưa `source devel/setup.bash` |
-| `run_dataset_experiments.py` báo `unrecognized arguments` | Đang ở nhánh `main`. Chuyển sang `experiment-batch` (cuối mục 2) |
-| `rosrun ... Couldn't find executable dataset_map_generator.py` | Chạy lại lệnh `chmod +x` ở mục 2 |
-| Không có cửa sổ RViz | Chạy `wsl --update` trong PowerShell rồi mở lại WSL |
+| `CMake Error ... Parse error` | Đang build trong `/mnt/c`, clone lại vào `~` |
+| `no map rcved yet` mãi | `map_file` sai đường dẫn |
+| Không có Goal3DTool | Mở RViz trước khi `source devel/setup.bash` |
+| `unrecognized arguments` / `FAILED` | Chưa ở branch `experiment-batch` hoặc chưa `catkin_make` |
+| `Couldn't find executable dataset_map_generator.py` | Chạy lại `chmod +x` (mục 2) |
+| Không có cửa sổ RViz | `wsl --update` trong PowerShell |
