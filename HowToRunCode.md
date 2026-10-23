@@ -10,8 +10,7 @@ Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so
 - [x] Môi trường, build, RViz
 - [x] Dataset: blobs/narrow × 10/20/40%, 30 bản đồ (file `dataset_maps_200x200.tar.gz`)
 - [x] Code thí nghiệm hàng loạt, branch `experiment-batch` (chờ review PR)
-- [ ] Chạy đầy đủ: đang chạy trên máy chính (blobs_10, blobs_20 xong; blobs_40 4/5)
-- [ ] So với Table 2
+- [x] Chạy đầy đủ và so với Table 2: [docs/KET_QUA_REPRODUCE.md](docs/KET_QUA_REPRODUCE.md). Độ dài đường đi và số node khớp; thời gian và số vòng lặp chưa khớp.
 - [ ] Hỏi GVHD: R_max (5 hay 10), chế độ exploration, class nào là EBi-RRT, mức narrow nào ứng với paper
 - [ ] Multi-Robot
 
