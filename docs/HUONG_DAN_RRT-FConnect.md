@@ -425,7 +425,12 @@ Cần thảo luận với GVHD hoặc tác giả, vì những điểm này ảnh
 
 ### 6.2 Các lỗi chặn khi chạy trên máy khác
 
-Danh sách dưới đây **chưa sửa**, chỉ liệt kê để biết trước.
+> **Cập nhật (branch `experiment-batch`):** đã sửa các lỗi `CustomLogger`, `input_param`, `map_file`/`output_result`,
+> và đã bật lại baseline. Thí nghiệm hàng loạt giờ lặp N lần mỗi truy vấn và ghi độ dài thật (`path_length`),
+> kèm chi phí nội bộ (`path_cost`). Lệnh chạy xem [HowToRunCode.md](../HowToRunCode.md), mục 6.
+> Các lỗi chưa sửa: `kd_free`, seed ngẫu nhiên, đường dẫn trong `generate_dataset.py`.
+
+Danh sách gốc:
 
 | Mức | Vấn đề | Vị trí | Hậu quả |
 |---|---|---|---|
