@@ -58,6 +58,11 @@ source ~/heuristic-guided-BiRRT/devel/setup.bash
 
 Khi có code mới trên repo: chạy `cd ~/heuristic-guided-BiRRT && git pull && catkin_make`.
 
+> Code thí nghiệm hàng loạt (mục 6) đang ở nhánh **`experiment-batch`**, chưa merge vào `main`. Chuyển sang nhánh đó rồi build lại:
+> ```bash
+> cd ~/heuristic-guided-BiRRT && git fetch && git checkout experiment-batch && catkin_make
+> ```
+
 ---
 
 ## 3. Chạy thử với bản đồ ngẫu nhiên (random forest)
@@ -142,6 +147,7 @@ python3 run_dataset_experiments.py --trials 10
 - Lệnh này in ra thư mục kết quả, dạng `~/rrt_results/<ngày_giờ>`.
 - Mặc định chạy `blobs_10 blobs_20 blobs_40 narrow_10`. Đổi bằng `--envs ...`.
 - Chạy lại cùng `--out` thì bản đồ nào đã xong sẽ được bỏ qua.
+- Bản đồ nào báo `FAILED` thì mở file log `~/rrt_results/<ngày_giờ>/<env>/map_i.log` để xem lỗi.
 
 **Xem kết quả**, ra bảng giống Table 2, kèm số liệu của paper:
 ```bash
@@ -157,5 +163,7 @@ python3 analyze_results.py ~/rrt_results/<ngày_giờ>
 | `CMake Error ... Parse error` khi chạy `catkin_make` | Đang build trong `/mnt/c`. Clone lại vào `~` như mục 2 |
 | Terminal planner cứ in mãi `no map rcved yet` | Đường dẫn `map_file` sai (mục 5) |
 | RViz không có Goal3DTool | Mở RViz khi chưa `source devel/setup.bash`. Tắt RViz, `source` lại rồi mở lại |
+| Mục 6 báo `map_i: FAILED`, log ghi `Couldn't find ...` hoặc lỗi param | Chưa `catkin_make` sau khi đổi sang nhánh `experiment-batch`, hoặc terminal chưa `source devel/setup.bash` |
+| `run_dataset_experiments.py` báo `unrecognized arguments` | Đang ở nhánh `main`. Chuyển sang `experiment-batch` (cuối mục 2) |
 | `rosrun ... Couldn't find executable dataset_map_generator.py` | Chạy lại lệnh `chmod +x` ở mục 2 |
 | Không có cửa sổ RViz | Chạy `wsl --update` trong PowerShell rồi mở lại WSL |
