@@ -130,6 +130,7 @@ Phần chung: thêm node vào cây và cập nhật cache (30 node gần nhất 
 Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn trong `generate_dataset.py`.
 
 Các bước: build → dataset → chạy thử → chạy đầy đủ → `analyze_results.py` → so với Table 2. Lệnh xem trong [HowToRunCode.md](../HowToRunCode.md).
+Kết quả lần chạy đầu: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
 
 ## 7. Single → Multi-Robot
 
