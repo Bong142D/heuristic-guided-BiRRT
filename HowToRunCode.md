@@ -8,6 +8,25 @@ Muốn hiểu code và paper thì đọc [docs/HUONG_DAN_RRT-FConnect.md](docs/H
 
 ---
 
+## Tình hình hiện tại (cập nhật 23/10/2026)
+
+Mục tiêu trước mắt: **reproduce** paper RRT-FConnect, tức là chạy với tham số **Table 1** rồi so kết quả với **Table 2** (trang 9 và 11 của paper).
+
+| Bước | Trạng thái |
+|---|---|
+| Cài môi trường, build, xem thuật toán chạy trên RViz | ✅ Xong |
+| Sinh dataset: blobs 10/20/40%, narrow 10/20/40% (30 bản đồ) | ✅ Xong. Dùng chung file `dataset_maps_200x200.tar.gz`, xem mục 4 |
+| Sửa code để chạy thí nghiệm hàng loạt (branch **`experiment-batch`**) | ✅ Xong, **chờ review PR** |
+| Chạy đầy đủ (4 môi trường × 5 bản đồ × 20 cặp × 10 lần × 4 thuật toán) | 🔄 Đang chạy trên máy chạy chính. blobs_10 và blobs_20 xong, blobs_40 tới 3/5 |
+| So kết quả với Table 2, viết nhận xét | ⬜ Chờ chạy xong |
+| Hỏi GVHD: R_max (5 hay 10), chế độ exploration, class nào là EBi-RRT, mức narrow nào ứng với paper | ⬜ Chưa hỏi |
+| Mở rộng sang Multi-Robot | ⬜ Sau khi reproduce xong |
+
+**Bạn mới vào nhóm làm theo thứ tự:** mục 1 → 2 → 3 (xem RViz) → 4A (lấy dataset) → 6 (chạy thử nhỏ) → review PR `experiment-batch`.
+Thí nghiệm đầy đủ chỉ chạy trên **một máy** để số liệu thống nhất.
+
+---
+
 ## 1. Cài môi trường (làm 1 lần)
 
 **PowerShell (Windows):** cài Ubuntu 20.04 cho WSL. Bỏ qua nếu máy đã có.
@@ -93,7 +112,18 @@ Kết quả in ra ở terminal 2. Dòng `[SOFBRRTOpitmize*] Case3 final path len
 
 ---
 
-## 4. Sinh dataset giống paper
+## 4. Dataset
+
+### 4A. Dùng dataset chung (khuyên dùng, mất 1 phút)
+Cả nhóm dùng chung một dataset để kết quả so được với nhau. Xin file `dataset_maps_200x200.tar.gz` (khoảng 2 MB) từ nhóm, rồi copy vào home của WSL. Trong File Explorer, thư mục đó là `\\wsl$\Ubuntu-20.04\home\<tên_user>\`. Sau đó chạy:
+```bash
+sudo mkdir -p /home/huy/rrt && sudo chown $USER /home/huy/rrt
+tar -xzf ~/dataset_maps_200x200.tar.gz -C /home/huy/rrt
+ls /home/huy/rrt/dataset_maps_200x200/   # thấy blobs_10 blobs_20 blobs_40 narrow_10 narrow_20 narrow_40
+```
+
+### 4B. Tự sinh dataset mới (chỉ khi cần bộ bản đồ khác)
+Bản đồ được sinh ngẫu nhiên, nên dataset tự sinh sẽ **khác** dataset chung.
 
 Paper chỉ dùng **blobs** (10/20/40%) và **narrow**. Script sinh lần lượt `blobs` → `narrow` → `flappy` → `rooms`, mỗi mức 5 bản đồ, mỗi bản đồ 20 cặp start/goal.
 
