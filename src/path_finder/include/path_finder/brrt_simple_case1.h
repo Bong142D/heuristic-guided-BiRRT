@@ -393,7 +393,6 @@ namespace path_plan
     }
     bool brrt_optimize(const Eigen::Vector3d &s, const Eigen::Vector3d &g)
     {
-      CustomLogger logger("/home/huy/rrt/logger_time.txt");
       ros::Time rrt_start_time = ros::Time::now();
       bool tree_connected = false;
       bool path_reverse = false;
