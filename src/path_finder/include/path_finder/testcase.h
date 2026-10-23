@@ -29,16 +29,19 @@ struct BRRTInput {
 
 struct AlgoResult {
     bool success;
-    double search_time;
-    double path_length;
+    double search_time;   // seconds
+    double path_length;   // geometric length of the returned path
     int node_count;
     int num_iterations;
     Eigen::Vector3d start;
     Eigen::Vector3d goal;
+    double path_cost = 0; // planner's internal cost (steer_length per edge)
 };
 
 struct RunResult {
     int run;
+    int scenario;
+    int trial;
     std::map<std::string, AlgoResult> algorithms;
 };
 
@@ -53,9 +56,11 @@ public:
         return input_;
     }
 
-    void store_output_for_run(const std::map<std::string, AlgoResult>& algo_results) {
+    void store_output_for_run(const std::map<std::string, AlgoResult>& algo_results, int scenario = -1, int trial = -1) {
         RunResult run;
         run.run = run_index_;
+        run.scenario = scenario;
+        run.trial = trial;
         run.algorithms = algo_results;
         results_.push_back(run);
         run_index_++;
@@ -90,6 +95,7 @@ public:
                     {"success", r.success},
                     {"search_time", r.search_time},
                     {"path_length", r.path_length},
+                    {"path_cost", r.path_cost},
                     {"node_count", r.node_count},
                     {"num_iterations", r.num_iterations},
                     {"start", {r.start[0], r.start[1], r.start[2]}},
@@ -98,6 +104,8 @@ public:
             }
             result_array.push_back({
                 {"run", run.run},
+                {"scenario", run.scenario},
+                {"trial", run.trial},
                 {"algorithms", algos}
             });
         }
