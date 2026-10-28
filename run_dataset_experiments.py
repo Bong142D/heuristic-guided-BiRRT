@@ -49,8 +49,9 @@ def run_map(map_pcd, scenarios, args, out_file):
         "input_param:=" + os.path.abspath(args.config),
         "output_result:=" + out_file,
         "trials_per_query:={}".format(args.trials),
-        "run_brrt:=true",
-        "run_goal_bias_brrt:=true",
+        "run_brrt:={}".format(str("brrt" in args.baselines).lower()),
+        "run_goal_bias_brrt:={}".format(str("gb" in args.baselines).lower()),
+        "run_brrt_case1:={}".format(str("ebi" in args.baselines).lower()),
         "run_brrt_optimize:=true",
     ]
     log_path = out_file.replace("_result.json", ".log")
@@ -69,6 +70,8 @@ def main():
     p.add_argument("--trials", type=int, default=10, help="runs per start/goal scenario")
     p.add_argument("--maps", type=int, default=5, help="number of maps per environment")
     p.add_argument("--max-scenarios", type=int, default=0, help="use only the first N scenarios of each map (0 = all)")
+    p.add_argument("--baselines", nargs="*", default=["brrt", "gb", "ebi"], choices=["brrt", "gb", "ebi"],
+                   help="baselines run next to RRT-FConnect: brrt = RRT-Connect, gb = GB-RRT-Connect, ebi = EBi-RRT")
     p.add_argument("--out", default=os.path.expanduser("~/rrt_results/" + time.strftime("%Y%m%d_%H%M%S")),
                    help="output folder")
     args = p.parse_args()

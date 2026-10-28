@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
+"""Generate the 200x200 benchmark maps and their start/goal scenarios.
+
+Needs a running roscore. Maps that already exist are skipped, so the script can be
+re-run to add new environments, e.g.:
+  python3 generate_dataset.py --types flappy rooms --fills 0.1 0.2
+"""
+import argparse
 import os
 import time
 import glob
 import shutil
 import subprocess
 
-map_types = [ "blobs", "narrow","flappy","rooms"]
-fill_levels = [ 0.1,0.2,0.4]
-num_maps = 5
-base_out_dir = "/home/huy/rrt/dataset_maps_200x200"
-
 def main():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--types", nargs="+", default=["blobs", "narrow", "flappy", "rooms"])
+    p.add_argument("--fills", nargs="+", type=float, default=[0.1, 0.2, 0.4])
+    p.add_argument("--maps", type=int, default=5, help="maps per environment")
+    p.add_argument("--out", default="/home/huy/rrt/dataset_maps_200x200")
+    args = p.parse_args()
+    map_types, fill_levels, num_maps, base_out_dir = args.types, args.fills, args.maps, args.out
+
     if not os.path.exists(base_out_dir):
         os.makedirs(base_out_dir)
 
@@ -24,6 +34,9 @@ def main():
             for i in range(num_maps):
                 print("Generating {} fill {} map {}/{}".format(m_type, fill, i+1, num_maps))
                 map_prefix = os.path.join(full_path, "map_{}".format(i))
+                if os.path.exists(map_prefix + ".pcd") and os.path.exists(map_prefix + "_scenarios.json"):
+                    print("  already exists, skipping")
+                    continue
                 
                 # 1. Start Map Generator
                 map_cmd = [
