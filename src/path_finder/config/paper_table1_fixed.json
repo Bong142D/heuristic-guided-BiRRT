@@ -1,0 +1,19 @@
+{
+    "trial": 1,
+    "environment": "paper_table1_fixed",
+    "epsilon": 0.5,
+    "p1": 0.8,
+    "u_p": 1,
+    "alpha": 1,
+    "beta": 0.2,
+    "gamma": 0.2,
+    "n_rays": 8,
+    "weight_grade": 1,
+    "ray_step_size": 0.5,
+    "r_max": 5.0,
+    "exploration": true,
+    "knn_k": 30,
+    "knn_exact": true,
+    "pool_size": 100,
+    "pop_guide": true
+}

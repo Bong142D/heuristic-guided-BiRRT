@@ -39,6 +39,8 @@ OF SUCH DAMAGE.
 #include <queue>
 #include <vector>
 #include <limits>
+#include <set>
+#include <iterator>
 
 
 
@@ -259,4 +261,54 @@ class HeuristicCache {
             return false;
         }
     };
+// Fixed-size pool of the best node pairs, as described in the RRT-FConnect paper
+// (Sec. 4: "a fixed-size candidate pool of the 100 most optimal node pairs ... multiset").
+// capacity <= 0 means unbounded.
+class BoundedPairPool {
+    public:
+        struct Entry {
+            double h;
+            TreeNode* a;
+            void* treeA;
+            TreeNode* b;
+            void* treeB;
+            bool operator<(const Entry& o) const { return h < o.h; }
+        };
+
+        explicit BoundedPairPool(int capacity = 100) : capacity_(capacity) {}
+        void setCapacity(int capacity) { capacity_ = capacity; }
+        void clear() { pool_.clear(); }
+        std::size_t size() const { return pool_.size(); }
+
+        void insert(TreeNode* a, void* treeA, TreeNode* b, void* treeB, double h) {
+            if (capacity_ > 0 && (int)pool_.size() >= capacity_) {
+                auto worst = std::prev(pool_.end());
+                if (h >= worst->h)
+                    return;
+                pool_.erase(worst);
+            }
+            pool_.insert({h, a, treeA, b, treeB});
+        }
+
+        // Best pair, returned as (node of treeA, node of treeB). pop = remove it from the pool.
+        bool minByTree(void* treeA, void* treeB, TreeNode*& outA, TreeNode*& outB, double& outH, bool pop) {
+            if (pool_.empty()) {
+                outA = outB = nullptr;
+                outH = std::numeric_limits<double>::infinity();
+                return false;
+            }
+            auto it = pool_.begin();
+            bool direct = (it->treeA == treeA);
+            outA = direct ? it->a : it->b;
+            outB = direct ? it->b : it->a;
+            outH = it->h;
+            if (pop)
+                pool_.erase(it);
+            return true;
+        }
+
+    private:
+        int capacity_;
+        std::multiset<Entry> pool_;
+};
 #endif

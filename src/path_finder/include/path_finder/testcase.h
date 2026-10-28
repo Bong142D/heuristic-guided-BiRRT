@@ -21,10 +21,23 @@ struct BRRTInput {
     int n_rays;
     int weight_grade;
     double ray_step_size;
+    // RRT-FConnect experiment switches (see SOF_BRRT_Simple_Case3::set_variant)
+    double r_max;
+    bool exploration;
+    int knn_k;
+    bool knn_exact;
+    int pool_size;
+    bool pop_guide;
+    bool reject_invalid_sample;
+    bool apf_always;
+    int explore_trigger;
+    int explore_len;
 
     BRRTInput() 
         : trial(0), environment(""), p1(0.0), u_p(0.0), alpha(0.0), beta(0.0), 
-          gamma(0.0), epsilon(0.0), p2(0.5), n_rays(9), weight_grade(0), ray_step_size(0.1) {}
+          gamma(0.0), epsilon(0.0), p2(0.5), n_rays(9), weight_grade(0), ray_step_size(0.1),
+          r_max(-1.0), exploration(true), knn_k(30), knn_exact(false), pool_size(0), pop_guide(true),
+          reject_invalid_sample(true), apf_always(false), explore_trigger(20), explore_len(50) {}
 };
 
 struct AlgoResult {
@@ -84,7 +97,17 @@ public:
             {"p2", input_.p2},
             {"n_rays", input_.n_rays},
             {"weight_grade", input_.weight_grade},
-            {"ray_step_size", input_.ray_step_size}
+            {"ray_step_size", input_.ray_step_size},
+            {"r_max", input_.r_max},
+            {"exploration", input_.exploration},
+            {"knn_k", input_.knn_k},
+            {"knn_exact", input_.knn_exact},
+            {"pool_size", input_.pool_size},
+            {"pop_guide", input_.pop_guide},
+            {"reject_invalid_sample", input_.reject_invalid_sample},
+            {"apf_always", input_.apf_always},
+            {"explore_trigger", input_.explore_trigger},
+            {"explore_len", input_.explore_len}
         };
 
         json result_array = json::array();
@@ -149,5 +172,15 @@ private:
         input_.n_rays = j.value("n_rays", 9);
         input_.weight_grade = j.value("weight_grade", 0);
         input_.ray_step_size = j.value("ray_step_size", 0.1);
+        input_.r_max = j.value("r_max", -1.0);
+        input_.exploration = j.value("exploration", true);
+        input_.knn_k = j.value("knn_k", 30);
+        input_.knn_exact = j.value("knn_exact", false);
+        input_.pool_size = j.value("pool_size", 0);
+        input_.pop_guide = j.value("pop_guide", true);
+        input_.reject_invalid_sample = j.value("reject_invalid_sample", true);
+        input_.apf_always = j.value("apf_always", false);
+        input_.explore_trigger = j.value("explore_trigger", 20);
+        input_.explore_len = j.value("explore_len", 50);
     }
 };

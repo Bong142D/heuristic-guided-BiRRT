@@ -91,6 +91,8 @@ namespace path_plan
       // vis_ptr_->visualize_a_ball(s, 0.3, "start", visualization::Color::pink);
       // vis_ptr_->visualize_a_ball(g, 0.3, "goal", visualization::Color::steelblue);
       cache.clear(); // clear the heuristic cache before planning
+      pair_pool_.clear();
+      pair_pool_.setCapacity(pool_size_);
       return brrt_optimize(s, g);
     }
 
@@ -121,6 +123,31 @@ namespace path_plan
       n_rays_ = n_rays;
       weight_grade_ = weight_grade;
       ray_step_size_ = std::max(0.01, ray_step_size);
+    }
+    // Experiment switches for checking the reproduction against the paper. The defaults
+    // keep the original behaviour. r_max <= 0 keeps R_max = 20 * steer_length.
+    // pool_size > 0 replaces the unbounded heap cache by a fixed-size pool of best pairs.
+    // pop_guide = false keeps the guide pair in the cache/pool instead of removing it.
+    void set_variant(double r_max, bool exploration, int knn_k, bool knn_exact, int pool_size, bool pop_guide)
+    {
+      if (r_max > 0)
+        brrt_optimize_r_max_ = r_max;
+      use_exploration_ = exploration;
+      knn_k_ = std::max(1, knn_k);
+      knn_exact_ = knn_exact;
+      pool_size_ = pool_size;
+      pop_guide_ = pop_guide;
+    }
+    // reject_invalid_sample = false: like RRT-Connect and Algorithm 1, a sample inside an
+    // obstacle is still steered towards instead of ending the iteration.
+    // apf_always = true: APF steering is applied even when the sample is within one step.
+    // explore_trigger / explore_len: exploration mode thresholds (original 20 / 50).
+    void set_sampling_variant(bool reject_invalid_sample, bool apf_always, int explore_trigger, int explore_len)
+    {
+      reject_invalid_sample_ = reject_invalid_sample;
+      apf_always_ = apf_always;
+      explore_trigger_ = std::max(1, explore_trigger);
+      explore_len_ = std::max(0, explore_len);
     }
     void setVisualizer(const std::shared_ptr<visualization::Visualization> &visPtr)
     {
@@ -181,6 +208,16 @@ namespace path_plan
 
     std::shared_ptr<visualization::Visualization> vis_ptr_;
     HeuristicCache cache;
+    BoundedPairPool pair_pool_;
+    bool use_exploration_ = true;
+    int knn_k_ = 30;
+    bool knn_exact_ = false;
+    int pool_size_ = 0;
+    bool pop_guide_ = true;
+    bool reject_invalid_sample_ = true;
+    bool apf_always_ = false;
+    int explore_trigger_ = 20;
+    int explore_len_ = 50;
     bool step_mode_ = false;
     int  step_interval_ = 1;
     std::atomic<bool> next_step_{false};
@@ -351,7 +388,7 @@ namespace path_plan
     {
       Eigen::Vector3d diff_vec = rand_node_p - nearest_node_p;
       double dist = diff_vec.norm();
-      if (dist <= len)
+      if (dist < 1e-9 || (dist <= len && !apf_always_))
       {
         return rand_node_p;
       }
@@ -451,15 +488,33 @@ namespace path_plan
 
       // Find the nearest node in treeB to the current node in treeA
       // struct kdres *nodesB = kd_nearest_range3(treeB, nodeSi->x[0], nodeSi->x[1], nodeSi->x[2], DBL_MAX);
-      struct kdres *nodesB = kd_nearest_n(treeB, nodeSi->x.data(), 30);
+      struct kdres *nodesB = knn_exact_ ? kd_nearest_n_exact(treeB, nodeSi->x.data(), knn_k_)
+                                        : kd_nearest_n(treeB, nodeSi->x.data(), knn_k_);
       while (!kd_res_end(nodesB))
       {
         RRTNode3DPtr nodeGi = (RRTNode3DPtr)kd_res_item_data(nodesB);
         double h = is_treeA_start ? computeH(nodeSi->x, nodeGi->x, true) : computeH(nodeSi->x, nodeGi->x, false);
-        cache.insert(nodeSi, treeA, nodeGi, treeB, h);  // same as insert(nodeB, treeB_ptr, nodeA, treeA_ptr, 1.23)
+        insertPair(nodeSi, treeA, nodeGi, treeB, h);  // same as insert(nodeB, treeB_ptr, nodeA, treeA_ptr, 1.23)
         kd_res_next(nodesB);
       }
       kd_res_free(nodesB);
+    }
+
+    void insertPair(RRTNode3DPtr a, kdtree *treeA, RRTNode3DPtr b, kdtree *treeB, double h)
+    {
+      if (pool_size_ > 0)
+        pair_pool_.insert(a, treeA, b, treeB, h);
+      else
+        cache.insert(a, treeA, b, treeB, h);
+    }
+
+    bool selectGuidePair(kdtree *treeA, kdtree *treeB, RRTNode3DPtr &si, RRTNode3DPtr &gi, double &h)
+    {
+      if (pool_size_ > 0)
+        return pair_pool_.minByTree(treeA, treeB, si, gi, h, pop_guide_);
+      if (pop_guide_)
+        return cache.popMinByTree(treeA, treeB, si, gi, h);
+      return cache.getMinByTree(treeA, treeB, si, gi, h);
     }
     Eigen::Vector3d get_sample_valid()
     {
@@ -568,7 +623,7 @@ namespace path_plan
     bool brrt_optimize(const Eigen::Vector3d &s, const Eigen::Vector3d &g)
     {
       ROS_INFO_STREAM("Start SOF Case 3");
-      ros::Time rrt_start_time = ros::Time::now();
+      ros::SteadyTime rrt_start_time = ros::SteadyTime::now(); // monotonic: wall-clock steps must not count as search time
       bool tree_connected = false;
       bool path_reverse = false;
 
@@ -599,7 +654,7 @@ namespace path_plan
       number_of_iterations_ = 0;
 
 
-      cache.insert(start_node_, treeA, goal_node_, treeB, h_start_goal); // insert start and goal node to cache
+      insertPair(start_node_, treeA, goal_node_, treeB, h_start_goal); // insert start and goal node to cache
 
       for (number_of_iterations_ = 0; number_of_iterations_ < max_iteration_; ++number_of_iterations_)
       {
@@ -621,7 +676,7 @@ namespace path_plan
         if (in_exploration) {
           // 1. Random Exploration Mode: uniform sampling + heuristicSteer(phi=0)
           sampler_.samplingOnce(x_rand);
-          if (!map_ptr_->isStateValid(x_rand)) {
+          if (reject_invalid_sample_ && !map_ptr_->isStateValid(x_rand)) {
             std::swap(treeA, treeB);
             path_reverse = !path_reverse;
             continue;
@@ -652,7 +707,7 @@ namespace path_plan
           kd_res_free(p_nearestB);
         } else {
           // Heuristic mode block
-          if (cache.popMinByTree(treeA, treeB, selected_SI, selected_GI, h_tmp)) {
+          if (selectGuidePair(treeA, treeB, selected_SI, selected_GI, h_tmp)) {
             if (h_tmp < best_h - epsilon) {
               best_h = h_tmp;
               no_improvement_count = 0;
@@ -664,8 +719,8 @@ namespace path_plan
             no_improvement_count++;
           }
 
-          if (no_improvement_count >= 20) {
-            exploration_mode_count = 50;
+          if (use_exploration_ && no_improvement_count >= explore_trigger_) {
+            exploration_mode_count = explore_len_;
             no_improvement_count = 0;
             std::swap(treeA, treeB);
             path_reverse = !path_reverse;
@@ -722,7 +777,7 @@ namespace path_plan
             x_rand[1] = x_temp[1] + r * std::sin(theta);
             x_rand[2] = x_temp[2];
 
-            if (!map_ptr_->isStateValid(x_rand)) {
+            if (reject_invalid_sample_ && !map_ptr_->isStateValid(x_rand)) {
               std::swap(treeA, treeB);
               path_reverse = !path_reverse;
               continue;
@@ -745,7 +800,7 @@ namespace path_plan
           } else {
             // 3. Uniform expansion mode: random sampling + vanillaSteer
             sampler_.samplingOnce(x_rand);
-            if (!map_ptr_->isStateValid(x_rand)) {
+            if (reject_invalid_sample_ && !map_ptr_->isStateValid(x_rand)) {
               std::swap(treeA, treeB);
               path_reverse = !path_reverse;
               continue;
@@ -828,7 +883,7 @@ namespace path_plan
             else
               fillPath(new_nodeA, new_nodeB, curr_best_path);
             path_list_.emplace_back(curr_best_path);
-            solution_cost_time_pair_list_.emplace_back(path_cost, (ros::Time::now() - rrt_start_time).toSec());
+            solution_cost_time_pair_list_.emplace_back(path_cost, (ros::SteadyTime::now() - rrt_start_time).toSec());
             cost_best_ = path_cost;
           }
           break;
@@ -845,7 +900,7 @@ namespace path_plan
           }
         }
       } // End of for loop
-      final_path_use_time_ = (ros::Time::now() - rrt_start_time).toSec();
+      final_path_use_time_ = (ros::SteadyTime::now() - rrt_start_time).toSec();
 #ifdef DEBUG
       visualizeWholeTree();
 #endif
@@ -860,7 +915,7 @@ namespace path_plan
       }
       else
       {
-        ROS_ERROR_STREAM("[SOF_BRRT_Optimize_case3]: NOT CONNECTED TO GOAL after " << (ros::Time::now() - rrt_start_time).toSec() << " seconds");
+        ROS_ERROR_STREAM("[SOF_BRRT_Optimize_case3]: NOT CONNECTED TO GOAL after " << (ros::SteadyTime::now() - rrt_start_time).toSec() << " seconds");
       }
 #endif
       return tree_connected;

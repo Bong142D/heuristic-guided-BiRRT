@@ -263,7 +263,7 @@ namespace path_plan
 
     bool brrt(const Eigen::Vector3d &s, const Eigen::Vector3d &g)
     {
-      ros::Time rrt_start_time = ros::Time::now();
+      ros::SteadyTime rrt_start_time = ros::SteadyTime::now(); // monotonic: wall-clock steps must not count as search time
       bool tree_connected = false;
       bool path_reverse = false;
       
@@ -366,7 +366,7 @@ namespace path_plan
             else
               fillPath(new_nodeA, new_nodeB, curr_best_path);
             path_list_.emplace_back(curr_best_path);
-            solution_cost_time_pair_list_.emplace_back(path_cost, (ros::Time::now() - rrt_start_time).toSec());
+            solution_cost_time_pair_list_.emplace_back(path_cost, (ros::SteadyTime::now() - rrt_start_time).toSec());
             cost_best_ = path_cost;
           }
           #ifdef DEBUG
@@ -390,10 +390,10 @@ namespace path_plan
 #ifdef DEBUG
       visualizeWholeTree();
 #endif
-      final_path_use_time_ = (ros::Time::now() - rrt_start_time).toSec();
+      final_path_use_time_ = (ros::SteadyTime::now() - rrt_start_time).toSec();
       if (tree_connected)
       {
-        final_path_use_time_ = (ros::Time::now() - rrt_start_time).toSec();
+        final_path_use_time_ = (ros::SteadyTime::now() - rrt_start_time).toSec();
         final_path_ = path_list_.back();
       }
 #ifdef DEBUG
@@ -403,7 +403,7 @@ namespace path_plan
       }
       else
       {
-        ROS_ERROR_STREAM("[GoalBiasBRRT]: NOT CONNECTED TO GOAL after " << (ros::Time::now() - rrt_start_time).toSec() << " seconds"<< " number_of_iterations_ " <<  number_of_iterations_ ) ;
+        ROS_ERROR_STREAM("[GoalBiasBRRT]: NOT CONNECTED TO GOAL after " << (ros::SteadyTime::now() - rrt_start_time).toSec() << " seconds"<< " number_of_iterations_ " <<  number_of_iterations_ ) ;
       }
 #endif
       return tree_connected;

@@ -1008,3 +1008,90 @@ struct kdres *kd_nearest_n(struct kdtree *tree, const double *pos, int k) {
     free(heap);
     return rset;
 }
+
+/* Exact k-nearest search: bounded binary max-heap, a branch is pruned against the
+ * current k-th (largest) distance. kd_nearest_n above prunes against heap[0], which
+ * is not the largest entry, so its result can miss true neighbours. */
+struct knn_entry
+{
+    double dist_sq;
+    struct kdnode *item;
+};
+
+static void knn_sift_down(struct knn_entry *h, int n, int i)
+{
+    for (;;)
+    {
+        int l = 2 * i + 1, r = l + 1, m = i;
+        if (l < n && h[l].dist_sq > h[m].dist_sq) m = l;
+        if (r < n && h[r].dist_sq > h[m].dist_sq) m = r;
+        if (m == i) return;
+        struct knn_entry t = h[i]; h[i] = h[m]; h[m] = t;
+        i = m;
+    }
+}
+
+static void knn_push(struct knn_entry *h, int *n, int k, struct kdnode *item, double dist_sq)
+{
+    if (*n < k)
+    {
+        int i = (*n)++;
+        h[i].dist_sq = dist_sq;
+        h[i].item = item;
+        while (i > 0 && h[(i - 1) / 2].dist_sq < h[i].dist_sq)
+        {
+            struct knn_entry t = h[i]; h[i] = h[(i - 1) / 2]; h[(i - 1) / 2] = t;
+            i = (i - 1) / 2;
+        }
+    }
+    else if (dist_sq < h[0].dist_sq)
+    {
+        h[0].dist_sq = dist_sq;
+        h[0].item = item;
+        knn_sift_down(h, *n, 0);
+    }
+}
+
+static void knn_search(struct kdnode *node, const double *pos, int dim, int k, struct knn_entry *h, int *n)
+{
+    if (!node) return;
+    double dist_sq = 0.0;
+    for (int i = 0; i < dim; i++)
+        dist_sq += SQ(pos[i] - node->pos[i]);
+    knn_push(h, n, k, node, dist_sq);
+
+    double dx = pos[node->dir] - node->pos[node->dir];
+    struct kdnode *nearer = dx <= 0 ? node->left : node->right;
+    struct kdnode *farther = dx <= 0 ? node->right : node->left;
+    knn_search(nearer, pos, dim, k, h, n);
+    if (*n < k || SQ(dx) < h[0].dist_sq)
+        knn_search(farther, pos, dim, k, h, n);
+}
+
+struct kdres *kd_nearest_n_exact(struct kdtree *tree, const double *pos, int k)
+{
+    if (!tree || !tree->root || k <= 0) return 0;
+
+    struct kdres *rset = malloc(sizeof *rset);
+    if (!rset) return 0;
+    rset->tree = tree;
+    rset->rlist = alloc_resnode();
+    rset->rlist->next = 0;
+
+    struct knn_entry *h = malloc(k * sizeof *h);
+    int n = 0;
+    knn_search(tree->root, pos, tree->dim, k, h, &n);
+
+    for (int i = 0; i < n; i++)
+    {
+        struct res_node *r = alloc_resnode();
+        r->item = h[i].item;
+        r->dist_sq = h[i].dist_sq;
+        r->next = rset->rlist->next;
+        rset->rlist->next = r;
+    }
+    free(h);
+    rset->size = n;
+    kd_res_rewind(rset);
+    return rset;
+}

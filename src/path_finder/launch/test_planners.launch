@@ -31,6 +31,7 @@
   <arg name="run_goal_bias_brrt" default="true" />
   <arg name="run_brrt_star" default="false" />
   <arg name="run_brrt_optimize" default="true" />
+  <arg name="run_brrt_case1" default="true" />
 
   <arg name="experiment" default="false" />
   <arg name="sof_brrt_step_mode" default="false" />
@@ -89,6 +90,7 @@
     <param name="run_goal_bias_brrt" value="$(arg run_goal_bias_brrt)" type="bool"/>
     <param name="run_brrt_star" value="$(arg run_brrt_star)" type="bool"/>
     <param name="run_brrt_optimize" value="$(arg run_brrt_optimize)" type="bool"/>
+    <param name="run_brrt_case1" value="$(arg run_brrt_case1)" type="bool"/>
     <param name="experiment" value="$(arg experiment)" type="bool"/>
 
     <param name="occ_map/origin_x" value="$(arg origin_x)" type="double"/>

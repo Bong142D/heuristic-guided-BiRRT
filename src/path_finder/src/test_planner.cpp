@@ -68,7 +68,7 @@ private:
     Eigen::Vector3d start_, goal_;
 
     bool run_rrt_, run_rrt_star_, run_rrt_sharp_;
-    bool run_brrt_, run_brrt_star_, run_brrt_optimize_, run_goal_bias_brrt_;
+    bool run_brrt_, run_brrt_star_, run_brrt_optimize_, run_goal_bias_brrt_, run_brrt_case1_;
     bool experiment;
     // Implement for testing path planning algorithms
     BiasSampler sampler_;
@@ -283,6 +283,7 @@ public:
         nh_.param("run_goal_bias_brrt", run_goal_bias_brrt_, false);
         nh_.param("run_brrt_star", run_brrt_star_, false);
         nh_.param("run_brrt_optimize", run_brrt_optimize_, false);
+        nh_.param("run_brrt_case1", run_brrt_case1_, true);
 
         nh_.param("generate_mode", generate_mode_, false);
         nh_.param("gen_min_dist", gen_min_dist_, 0.0);
@@ -502,6 +503,8 @@ public:
             //     ROS_INFO_STREAM("[SOFBRRTOpitmize*] Case2 final path len: " << slns.back().first);
             // }
             sof_brrt_simple_case3_ptr_->set_heuristic_param(input.p1, input.u_p, input.alpha, input.beta, input.gamma, input.epsilon, input.p2, input.n_rays, input.weight_grade, input.ray_step_size);
+            sof_brrt_simple_case3_ptr_->set_variant(input.r_max, input.exploration, input.knn_k, input.knn_exact, input.pool_size, input.pop_guide);
+            sof_brrt_simple_case3_ptr_->set_sampling_variant(input.reject_invalid_sample, input.apf_always, input.explore_trigger, input.explore_len);
             bool sof_brrt_optimize_case3_res = sof_brrt_simple_case3_ptr_->plan(start_, goal_);
             sof_brrt_simple_case3_ptr_->visualizeWholeTree();
             if (sof_brrt_optimize_case3_res)
@@ -619,11 +622,16 @@ public:
         if (run_brrt_optimize_)
         {
             // Heuristic guide-pair BiRRT without LEA/APF (candidate for the EBi-RRT baseline)
-            brrt_simple_case1_ptr_->set_heuristic_param(input.p1, input.u_p, input.alpha, input.beta, input.gamma, input.epsilon);
-            runAndRecord("BRRT_Case1", brrt_simple_case1_ptr_, algo_outputs);
+            if (run_brrt_case1_)
+            {
+                brrt_simple_case1_ptr_->set_heuristic_param(input.p1, input.u_p, input.alpha, input.beta, input.gamma, input.epsilon);
+                runAndRecord("BRRT_Case1", brrt_simple_case1_ptr_, algo_outputs);
+            }
 
             // RRT-FConnect (the paper's method)
             sof_brrt_simple_case3_ptr_->set_heuristic_param(input.p1, input.u_p, input.alpha, input.beta, input.gamma, input.epsilon, input.p2, input.n_rays, input.weight_grade, input.ray_step_size);
+            sof_brrt_simple_case3_ptr_->set_variant(input.r_max, input.exploration, input.knn_k, input.knn_exact, input.pool_size, input.pop_guide);
+            sof_brrt_simple_case3_ptr_->set_sampling_variant(input.reject_invalid_sample, input.apf_always, input.explore_trigger, input.explore_len);
             runAndRecord("SOF_BRRT_Case3", sof_brrt_simple_case3_ptr_, algo_outputs);
         }
 
