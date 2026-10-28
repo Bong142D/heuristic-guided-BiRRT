@@ -2,7 +2,7 @@
 
 Paper: *RRT-FConnect: Fast Bidirectional Path Planning in Cluttered and Narrow-Passage Environments* (Chi, Huy, Trang, HCMUT, PRICAI 2026).
 Đồ án: Hoạch định đường đi đa robot dựa vào lấy mẫu có định hướng. Giai đoạn hiện tại: reproduce bản single robot.
-Lệnh chạy: [HowToRunCode.md](../HowToRunCode.md).
+Lệnh chạy: [HowToRunCode.md](HowToRunCode.md).
 
 ## 1. Tóm tắt
 
@@ -115,8 +115,17 @@ Phần chung: thêm node vào cây và cập nhật cache (30 node gần nhất 
 1. **R_max:** code tính `20·ε`, ra 10 với ε=0.5. Paper dùng 5.
 2. **Exploration khi bế tắc** (ngưỡng 20/50): không có trong Algorithm 1.
 3. **Kho cặp node:** paper giữ 100 cặp tốt nhất trong multiset. Code dùng heap không giới hạn, ghép với 30 node gần nhất, và xoá cặp sau khi dùng.
+3b. **`kd_nearest_n`** cắt nhánh theo `heap[0]` thay vì phần tử xa nhất, nên trả về khoảng 6–14% hàng xóm sai.
+3c. **Bỏ mẫu nằm trong vật cản:** cả ba nhánh (uniform, heuristic, exploration) kết thúc vòng lặp khi mẫu ngẫu nhiên nằm trong vật cản. RRT-Connect và Algorithm 1 vẫn steer về phía mẫu.
+3d. **APF:** `heuristicSteer` trả thẳng mẫu khi mẫu nằm trong vòng ε, không áp APF. Paper luôn áp APF.
+
+Mục 1, 2, 3, 3b, 3c, 3d đã có cờ trong file JSON tham số (`r_max`, `exploration`, `pool_size`, `knn_exact`, `reject_invalid_sample`, `apf_always`; xem `set_variant` và `set_sampling_variant`). Kết quả thử từng cờ: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md). Tóm lại:
+- Kho không giới hạn làm mỗi vòng lặp chậm gấp 2–3 lần. Đây là nguyên nhân chính khiến thời gian không khớp.
+- Việc bỏ mẫu nằm trong vật cản (3c) là nguyên nhân chính khiến số vòng lặp cao gấp 2–2.7 lần paper.
+- Exploration phải giữ lại: tắt đi thì success ở blobs_40 giảm còn khoảng 82%.
+- Cấu hình gần paper nhất: [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json).
 4. **Chi phí cạnh:** code cộng ε cho mỗi cạnh. Trên branch `experiment-batch`, `path_length` đã được tính lại theo độ dài hình học thật, còn `path_cost` giữ chi phí nội bộ.
-5. **Đơn vị:** `search_time` lưu theo giây. `analyze_results.py` đổi sang ms.
+5. **Đơn vị và đồng hồ:** `search_time` lưu theo giây. `analyze_results.py` đổi sang ms. Từ 28/10, các planner đo bằng `ros::SteadyTime` (đồng hồ đơn điệu) thay cho `ros::Time::now()`, vì đồng hồ thực của WSL có thể bị chỉnh nhảy (lần 7 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md)).
 6. **Không gian:** tia và APF chỉ chạy trên mặt phẳng XY, còn lấy mẫu đều có cả trục z (bản đồ 3 lớp).
 7. `BRRT_Simple_Case1/2` dùng `exp(−r)`, tức chiều ngược với Eq. 3.
 
@@ -127,12 +136,18 @@ Phần chung: thêm node vào cây và cập nhật cache (30 node gần nhất 
 - Bật baseline, lặp N lần mỗi cặp, ghi độ dài thật.
 - Thêm `run_dataset_experiments.py` và `analyze_results.py`.
 
-Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn trong `generate_dataset.py`.
+Thêm ngày 27/10: cờ thử nghiệm cho Case3, `kd_nearest_n_exact`, `BoundedPairPool` (kho 100 cặp), `sweep_fconnect.py`, cấu hình [paper_table1_fixed.json](../src/path_finder/config/paper_table1_fixed.json), bản đồ flappy/rooms.
 
-Các bước: build → dataset → chạy thử → chạy đầy đủ → `analyze_results.py` → so với Table 2. Lệnh xem trong [HowToRunCode.md](../HowToRunCode.md).
-Kết quả lần chạy đầu: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
+Thêm ngày 28/10: cờ `reject_invalid_sample`, `apf_always`, `explore_trigger`, `explore_len`; cấu hình [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json); đo thời gian bằng đồng hồ đơn điệu; `check_timing.py` so mỗi lần chạy với các lần chạy có số vòng lặp tương đương và số node tương đương; bỏ bộ lọc "100 lần trung vị".
+
+Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn trong `generate_dataset.py`, và việc sinh kịch bản không kiểm tra start/goal có nối được với nhau (flappy_40 có 1/100, rooms_40 có 2/100 bài vô nghiệm).
+
+Các bước: build → dataset → chạy thử → chạy đầy đủ → `analyze_results.py` → so với Table 2. Lệnh xem trong [HowToRunCode.md](HowToRunCode.md).
+Kết quả: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
 
 ## 7. Single → Multi-Robot
+
+Phân tích đầy đủ, các hướng, kế hoạch và bảng theo dõi: [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md). Mục này chỉ là tóm tắt.
 
 Code hiện giả định một robot, môi trường tĩnh, đường đi không có thời gian.
 
@@ -150,9 +165,11 @@ Hướng tận dụng code nhiều nhất là prioritized planning: RRT-FConnect
 
 ## 8. Câu hỏi cho GVHD
 
-1. Thí nghiệm của paper có bật chế độ exploration (20/50) không?
-2. R_max là 5 hay `20·ε`?
-3. Kho 100 cặp trong multiset: có bản code khác không?
+Câu 1–3 đã tự kiểm chứng bằng thực nghiệm (xem KET_QUA_REPRODUCE.md), không cần hỏi nữa: exploration phải bật, R_max = 5 hay 10 gần như không ảnh hưởng, kho 100 cặp cho thời gian khớp paper.
+
+1. ~~Thí nghiệm của paper có bật chế độ exploration (20/50) không?~~
+2. ~~R_max là 5 hay `20·ε`?~~
+3. ~~Kho 100 cặp trong multiset: có bản code khác không?~~
 4. EBi-RRT là `BRRT_Simple_Case1` hay `Case2`?
 5. Path length trong paper là độ dài thật hay ε × số cạnh?
 6. Mức narrow nào ứng với môi trường narrow passage của paper? K và `gen_min_dist` dùng bao nhiêu?
