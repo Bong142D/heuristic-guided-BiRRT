@@ -6,6 +6,8 @@
 > kèm `mockamap` của William Wu. Code được giảng viên hướng dẫn cung cấp làm tài liệu tham khảo
 > cho đồ án *Hoạch định đường đi đa robot dựa vào lấy mẫu có định hướng*.
 
+Những chỗ đã sửa so với code gốc: mục 6 của [docs/HUONG_DAN_RRT-FConnect.md](docs/HUONG_DAN_RRT-FConnect.md). Cách build và chạy thí nghiệm: [docs/HowToRunCode.md](docs/HowToRunCode.md). Kết quả reproduce paper RRT-FConnect: [docs/KET_QUA_REPRODUCE.md](docs/KET_QUA_REPRODUCE.md).
+
 ## Build & Run
 ### Build
 1. git clone git@github.com:ZJU-FAST-Lab/sampling-based-path-finding.git

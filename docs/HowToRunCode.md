@@ -9,7 +9,7 @@ Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so
 
 - [x] Môi trường, build, RViz
 - [x] Dataset: 12 môi trường, 60 bản đồ (file `dataset_maps_200x200.tar.gz` trong repo)
-- [x] Code thí nghiệm hàng loạt, branch `experiment-batch` (chờ review PR)
+- [x] Code thí nghiệm hàng loạt, đã gộp vào `main`. Những chỗ sửa so với code gốc: mục 6 của [HUONG_DAN_RRT-FConnect.md](HUONG_DAN_RRT-FConnect.md)
 - [x] Chạy đầy đủ và so với Table 2: [docs/KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md). Với code gốc: độ dài đường đi và số node khớp; thời gian và số vòng lặp chưa khớp.
 - [x] Quét nguyên nhân, sửa theo paper (kho 100 cặp, k-NN chính xác, R_max = 5, không bỏ mẫu nằm trong vật cản, APF luôn áp): cấu hình [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json)
 - [x] Số vòng lặp ở Highly/Narrow cao gấp khoảng 2 lần paper: nguyên nhân chính là code bỏ mẫu nằm trong vật cản (H9 trong KET_QUA_REPRODUCE.md)
@@ -17,7 +17,7 @@ Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so
 - [x] Chạy lại sạch mọi thí nghiệm có số liệu thời gian, gồm cả EBi-RRT trên flappy/rooms (lần 9 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md)). Với cấu hình cuối, mọi kết luận của Table 2 đều tái hiện được; cách chạy lại ở mục 6
 - [ ] Multi-Robot: định hướng và bảng theo dõi trong [docs/HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)
 
-Người mới: mục 1 → 2 → 2b → 3 → 4 → 5 (chạy thử) → review PR.
+Người mới: mục 1 → 2 → 2b → 3 → 4 → 5 (chạy thử).
 
 ## 1. Cài đặt
 
@@ -41,7 +41,6 @@ Clone vào `~`, không clone vào `/mnt/c` (symlink hỏng, build báo `Parse er
 ```bash
 cd ~ && git clone https://github.com/Bong142D/heuristic-guided-BiRRT.git
 cd ~/heuristic-guided-BiRRT
-git checkout experiment-batch
 chmod +x src/map_gen/map_generator/scripts/*.py
 sudo mkdir -p /home/huy/rrt && sudo chown $USER /home/huy/rrt
 source /opt/ros/noetic/setup.bash && catkin_make
@@ -145,7 +144,7 @@ Khi chạy dài: cắm sạc, không gập máy, và để Windows không ngủ.
 
 ## 6. Reproduce kết quả của nhóm
 
-Kết quả để đối chiếu là lần 9 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md). Cần cùng code (branch `experiment-batch`), cùng bộ bản đồ (mục 4) và đồng hồ WSL đã sửa (mục 2b).
+Kết quả để đối chiếu là lần 9 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md). Cần cùng code (`main`; đúng bản lúc chạy là tag `reproduce-lan9`), cùng bộ bản đồ (mục 4) và đồng hồ WSL đã sửa (mục 2b).
 
 ```bash
 cd ~/heuristic-guided-BiRRT
@@ -181,7 +180,7 @@ python3 sweep_fconnect.py --summary-only --out $C/sweep_1   # tương tự sweep
 | `CMake Error ... Parse error` | Đang build trong `/mnt/c`, clone lại vào `~` |
 | `no map rcved yet` mãi | `map_file` sai đường dẫn |
 | Không có Goal3DTool | Mở RViz trước khi `source devel/setup.bash` |
-| `unrecognized arguments` / `FAILED` | Chưa ở branch `experiment-batch` hoặc chưa `catkin_make` |
+| `unrecognized arguments` / `FAILED` | Code cũ: `git pull` rồi `catkin_make` |
 | `Couldn't find executable dataset_map_generator.py` | Chạy lại `chmod +x` (mục 2) |
 | Không có cửa sổ RViz | `wsl --update` trong PowerShell |
 | Nhiều lần chạy bị cộng thêm khoảng 1,4 s, thời gian dao động bất thường | Đồng hồ WSL bị chỉnh nhảy: làm mục 2b |

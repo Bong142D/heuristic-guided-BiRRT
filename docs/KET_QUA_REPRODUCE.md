@@ -40,7 +40,7 @@ Lần 4–8 và lần 9 đều do script tự chạy nối tiếp. Log nằm ở
 
 ## Thiết lập chung
 
-- **Code:** branch `experiment-batch`. Lần 1 dùng commit `e2e47ca`, chưa sửa thuật toán. Lần 2 và 3 thêm cờ thử nghiệm. Mặc định của các cờ giữ nguyên hành vi gốc, nên lần 1 vẫn chạy lại được. Lần 9 đổi thêm cách đo thời gian của 4 planner (đồng hồ đơn điệu).
+- **Code:** branch `main`, tag `reproduce-lan9`. Những chỗ sửa so với code gốc: mục 6 của [HUONG_DAN_RRT-FConnect.md](HUONG_DAN_RRT-FConnect.md). Lần 1 dùng commit `b4fbb47`, chưa sửa thuật toán. Lần 2 và 3 thêm cờ thử nghiệm. Mặc định của các cờ giữ nguyên hành vi gốc, nên lần 1 vẫn chạy lại được. Lần 9 đổi thêm cách đo thời gian của 4 planner (đồng hồ đơn điệu).
 - **Tham số:** Table 1. Lần 1 dùng [paper_table1.json](../src/path_finder/config/paper_table1.json), lần 3 dùng [paper_table1_fixed.json](../src/path_finder/config/paper_table1_fixed.json), lần 5 và 9 dùng [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json).
 - **Dataset:** bản đồ 200×200, tự sinh bằng `generate_dataset.py`, nên khác bản đồ của paper. Bộ bản đồ đã dùng là file `dataset_maps_200x200.tar.gz` ở gốc repo. Mỗi môi trường có 5 bản đồ × 20 cặp start/goal. Lần chạy đầy đủ lặp 10 lần mỗi cặp, tức 1000 lần chạy cho mỗi thuật toán. Cách chạy lại mọi kết quả: mục 6 của [HowToRunCode.md](HowToRunCode.md).
 - **Máy:** WSL2 Ubuntu 20.04, ROS Noetic, Intel Core Ultra 5 225H (laptop).

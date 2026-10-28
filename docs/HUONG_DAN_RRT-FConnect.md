@@ -124,23 +124,44 @@ Mục 1, 2, 3, 3b, 3c, 3d đã có cờ trong file JSON tham số (`r_max`, `exp
 - Việc bỏ mẫu nằm trong vật cản (3c) là nguyên nhân chính khiến số vòng lặp cao gấp 2–2.7 lần paper.
 - Exploration phải giữ lại: tắt đi thì success ở blobs_40 giảm còn khoảng 82%.
 - Cấu hình gần paper nhất: [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json).
-4. **Chi phí cạnh:** code cộng ε cho mỗi cạnh. Trên branch `experiment-batch`, `path_length` đã được tính lại theo độ dài hình học thật, còn `path_cost` giữ chi phí nội bộ.
+4. **Chi phí cạnh:** code cộng ε cho mỗi cạnh. Khung thí nghiệm giờ ghi `path_length` theo độ dài hình học thật, còn `path_cost` giữ chi phí nội bộ.
 5. **Đơn vị và đồng hồ:** `search_time` lưu theo giây. `analyze_results.py` đổi sang ms. Từ 28/10, các planner đo bằng `ros::SteadyTime` (đồng hồ đơn điệu) thay cho `ros::Time::now()`, vì đồng hồ thực của WSL có thể bị chỉnh nhảy (lần 7 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md)).
 6. **Không gian:** tia và APF chỉ chạy trên mặt phẳng XY, còn lấy mẫu đều có cả trục z (bản đồ 3 lớp).
 7. `BRRT_Simple_Case1/2` dùng `exp(−r)`, tức chiều ngược với Eq. 3.
 
-## 6. Reproduce
+## 6. Thay đổi so với code gốc
 
-Đã sửa trên branch `experiment-batch`:
-- Bỏ các đường dẫn `/home/huy` và `CustomLogger` gây crash.
-- Bật baseline, lặp N lần mỗi cặp, ghi độ dài thật.
-- Thêm `run_dataset_experiments.py` và `analyze_results.py`.
+Code gốc là commit đầu tiên của repo (tag `code-goc`). Xem từng dòng đã sửa: `git diff code-goc -- src/ '*.py'`.
 
-Thêm ngày 27/10: cờ thử nghiệm cho Case3, `kd_nearest_n_exact`, `BoundedPairPool` (kho 100 cặp), `sweep_fconnect.py`, cấu hình [paper_table1_fixed.json](../src/path_finder/config/paper_table1_fixed.json), bản đồ flappy/rooms.
+**Thuật toán RRT-FConnect** ([SOF_brrt_simple_case3.h](../src/path_finder/include/path_finder/SOF_brrt_simple_case3.h)). Mọi thay đổi nằm sau cờ trong file JSON tham số; file không khai báo cờ thì chạy y như code gốc. Lý do của từng cờ: mục 5.
 
-Thêm ngày 28/10: cờ `reject_invalid_sample`, `apf_always`, `explore_trigger`, `explore_len`; cấu hình [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json); đo thời gian bằng đồng hồ đơn điệu; `check_timing.py` so mỗi lần chạy với các lần chạy có số vòng lặp tương đương và số node tương đương; bỏ bộ lọc "100 lần trung vị".
+| Cờ | Mặc định (= code gốc) | Cấu hình cuối | Tác dụng |
+|---|---|---|---|
+| `r_max` | −1, tức 20·ε = 10 | 5 | Độ dài tối đa của tia |
+| `pool_size` | 0 | 100 | > 0: kho N cặp tốt nhất (`BoundedPairPool`, thêm vào `node.h`) thay cho heap không giới hạn |
+| `knn_exact` | false | true | true: dùng `kd_nearest_n_exact` (thêm vào `kdtree.c`) thay cho `kd_nearest_n` |
+| `reject_invalid_sample` | true | false | false: mẫu nằm trong vật cản vẫn được steer tới, như RRT-Connect |
+| `apf_always` | false | true | true: áp APF cả khi mẫu nằm trong vòng ε |
+| `exploration`, `explore_trigger`, `explore_len` | true, 20, 50 | giữ nguyên | Bật chế độ exploration; số lần không cải thiện để bật, số vòng chạy |
+| `knn_k` | 30 | giữ nguyên | Số hàng xóm ghép cặp |
+| `pop_guide` | true | giữ nguyên | true: xoá cặp dẫn đường sau khi dùng |
 
-Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn trong `generate_dataset.py`, và việc sinh kịch bản không kiểm tra start/goal có nối được với nhau (flappy_40 có 1/100, rooms_40 có 2/100 bài vô nghiệm).
+Cấu hình cuối: [paper_table1_final.json](../src/path_finder/config/paper_table1_final.json). Còn [paper_table1.json](../src/path_finder/config/paper_table1.json) là Table 1 với code gốc, [paper_table1_fixed.json](../src/path_finder/config/paper_table1_fixed.json) là bản sửa dùng ở lần 3 của [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
+
+**Áp dụng luôn, không có cờ:**
+- **Đo thời gian:** RRT-Connect (`brrt.h`), GB-RRT-Connect (`goal_bias_brrt.h`), `BRRT_Case1` (`brrt_simple_case1.h`) và RRT-FConnect đo bằng `ros::SteadyTime` thay cho `ros::Time::now()`. Đường đi tìm được không đổi, vì planner dừng theo số vòng lặp; chỉ số đo không còn bị đồng hồ thực chỉnh nhảy.
+- **`CustomLogger`:** bỏ dòng tạo logger ghi vào `/home/huy/rrt` trong `SOF_brrt_simple_case1/2/3.h` và `brrt_simple_case1.h`. Logger này không được dùng, nhưng làm crash khi máy không có thư mục đó.
+- **Build:** `src/CMakeLists.txt` được khôi phục thành symlink tới `toplevel.cmake` của catkin.
+
+**Khung thí nghiệm (không đổi thuật toán):**
+- `test_planner.cpp`: chế độ experiment chạy RRT-Connect, GB-RRT-Connect, `BRRT_Case1` và RRT-FConnect qua một hàm chung. Baseline dùng bước ε của file tham số. Mỗi cặp start/goal lặp `trials_per_query` lần. Kết quả ghi độ dài hình học thật (`path_length`) bên cạnh chi phí nội bộ (`path_cost`). Các cờ được truyền vào RRT-FConnect.
+- `testcase.h`: đọc các cờ; ghi thêm `scenario`, `trial`, `path_cost` vào JSON kết quả.
+- `test_planners.launch`: các arg ghi đè được từ dòng lệnh; mặc định dùng bản đồ random forest và tham số Table 1; bỏ đường dẫn `/home/huy`; thêm `trials_per_query` và `run_brrt_case1`.
+- Script: viết lại `run_dataset_experiments.py`; `generate_dataset.py` thêm tham số dòng lệnh và bỏ qua bản đồ đã có; thêm mới `analyze_results.py`, `sweep_fconnect.py`, `check_timing.py`.
+
+Các planner và package khác giữ nguyên code gốc.
+
+Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn mặc định `/home/huy/rrt` của bộ bản đồ, và việc sinh kịch bản không kiểm tra start/goal có nối được với nhau (flappy_40 có 1/100, rooms_40 có 2/100 bài vô nghiệm).
 
 Các bước: build → dataset → chạy thử → chạy đầy đủ → `analyze_results.py` → so với Table 2. Lệnh xem trong [HowToRunCode.md](HowToRunCode.md).
 Kết quả: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
