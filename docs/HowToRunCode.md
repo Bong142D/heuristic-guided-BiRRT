@@ -15,7 +15,7 @@ Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so
 - [x] Số vòng lặp ở Highly/Narrow cao gấp khoảng 2 lần paper: nguyên nhân chính là code bỏ mẫu nằm trong vật cản (H9 trong KET_QUA_REPRODUCE.md)
 - [x] Lỗi đo thời gian: đồng hồ của WSL bị chỉnh nhảy +1,4 s mỗi khoảng 34 s. Planner giờ đo bằng đồng hồ đơn điệu; máy chạy thí nghiệm phải sửa đồng hồ (mục 2b)
 - [x] Chạy lại sạch mọi thí nghiệm có số liệu thời gian, gồm cả EBi-RRT trên flappy/rooms (lần 9 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md)). Với cấu hình cuối, mọi kết luận của Table 2 đều tái hiện được; cách chạy lại ở mục 6
-- [ ] Multi-Robot: định hướng và bảng theo dõi trong [docs/HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)
+- [ ] Multi-Robot (lập kế hoạch tĩnh, sửa đường khi có sự cố): định hướng và bảng theo dõi trong [docs/HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)
 
 Người mới: mục 1 → 2 → 2b → 3 → 4 → 5 (chạy thử).
 

@@ -170,19 +170,14 @@ Kết quả: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
 
 Phân tích đầy đủ, các hướng, kế hoạch và bảng theo dõi: [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md). Mục này chỉ là tóm tắt.
 
-Code hiện giả định một robot, môi trường tĩnh, đường đi không có thời gian.
+Hướng của nhóm là **lập kế hoạch tĩnh**: lập xong đường cho mọi robot trước khi chạy, và chỉ sửa đường khi gặp sự cố.
+- RRT-FConnect giữ nguyên thuật toán, lập đường cho từng robot trên bản đồ tĩnh đã nới vật cản theo bán kính robot.
+- Ở những đoạn hai đường đi sát nhau (vùng giao nhau), kế hoạch quy định robot nào đi qua trước; robot đi sau dừng chờ ở mép vùng.
+- Khi có sự cố (robot trễ, robot hỏng, vật cản mới, lối đi bị đóng), RRT-FConnect lập lại đường cho robot bị ảnh hưởng từ vị trí hiện tại.
 
-Cần đổi:
-- `TreeNode`: thêm thời gian.
-- Kiểm tra va chạm: thêm va chạm robot–robot, phụ thuộc thời gian, có bán kính robot.
-- Planner: N cặp cây, trạng thái không nằm trong biến thành viên.
-- Heuristic, LEA và APF: xét cả robot khác.
-- Đầu ra: N đường đi theo thời gian.
-- Metric: tổng chi phí, makespan, số xung đột.
+Cần thêm, ngoài planner: nới vật cản và cập nhật bản đồ khi chạy; tìm vùng giao nhau và thứ tự; bộ mô phỏng thực thi có tiêm sự cố và kiểm tra va chạm giữa các robot; các metric đa robot (SOC, makespan, thời gian chờ, độ trễ phục hồi).
 
-Giữ được: `occ_grid`, `kdtree`, `sampler`, các script sinh bản đồ, và phần lõi mở rộng cây.
-
-Hướng tận dụng code nhiều nhất là prioritized planning: RRT-FConnect lập kế hoạch cho từng robot, đường của robot trước trở thành vật cản động của robot sau. Hướng nâng cao hơn là CBS với RRT-FConnect làm tầng dưới.
+Giữ được: `occ_grid`, `kdtree`, `sampler`, RRT-FConnect, các script sinh bản đồ và chạy hàng loạt.
 
 ## 8. Câu hỏi cho GVHD
 
@@ -194,4 +189,4 @@ Câu 1–3 đã tự kiểm chứng bằng thực nghiệm (xem KET_QUA_REPRODUC
 4. EBi-RRT là `BRRT_Simple_Case1` hay `Case2`?
 5. Path length trong paper là độ dài thật hay ε × số cạnh?
 6. Mức narrow nào ứng với môi trường narrow passage của paper? K và `gen_min_dist` dùng bao nhiêu?
-7. Multi-Robot theo hướng tập trung, ưu tiên hay CBS? Robot có kích thước và động học thế nào?
+7. ~~Multi-Robot theo hướng tập trung, ưu tiên hay CBS?~~ Nhóm chọn lập kế hoạch tĩnh (29/10). Kích thước, động học robot và các câu còn mở: mục 10 của [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md).

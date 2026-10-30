@@ -662,7 +662,7 @@ Dựa trên số liệu sạch của lần 9.
    - EBi-RRT chậm nhất, chậm hơn RRT-Connect 9–20 lần.
    - Nhưng nó chậm hơn RRT-Connect, tới 1.9 lần; riêng rooms_20 thì ngang. Lý do: số vòng lặp chỉ giảm còn 0.55–0.82 lần, không bù được chi phí mỗi vòng cao gấp 1.8–2.5 lần (mục "Máy có quyết định nhanh hay chậm không").
    - Giả thuyết cho việc số vòng giảm ít: heuristic chọn cặp dùng khoảng cách đường thẳng nên không biết tới tường.
-   - Điểm này quan trọng cho hướng multi-robot, vì các bản đồ có khe hẹp (mục 8.2 của [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)).
+   - Điểm này quan trọng cho hướng multi-robot, vì các bản đồ có khe hẹp (mục 5.5 của [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)).
 4. **Đo thời gian:**
    - Đồng hồ của WSL (timesyncd giằng co với Hyper-V) đã làm nhiễu số liệu thời gian của lần 1–6. Lỗi đã được sửa, và mọi kết luận về thời gian đều lấy từ lần 9.
    - Máy chỉ ảnh hưởng tới số ms tuyệt đối. Tỉ lệ chi phí mỗi vòng so với RRT-Connect lệch không quá 6% giữa hai lần đo trên máy này, và không quá 11% so với máy của paper.
