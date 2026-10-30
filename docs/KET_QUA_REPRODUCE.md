@@ -27,7 +27,7 @@ Lần 4–8 và lần 9 đều do script tự chạy nối tiếp. Log nằm ở
   - success cao nhất ở Highly;
   - sai số của các tỉ lệ thời gian khoảng ±10–15% (khoảng tin cậy 95%). Simple (1.00–1.22) và Narrow (0.82–1.01) sát mức ngang, giống paper.
 - **Ngoài paper (flappy/rooms, lần 9):**
-  - RRT-FConnect vẫn dùng ít vòng lặp nhất và giải được nhiều bài nhất ở mật độ 40%.
+  - RRT-FConnect dùng ít vòng lặp hơn RRT-Connect ở cả 6 môi trường, và giải được nhiều bài nhất ở mật độ 40%.
   - Nhưng nó chậm hơn RRT-Connect, tới 1.9 lần; riêng rooms_20 thì ngang.
   - EBi-RRT chậm nhất, chậm hơn RRT-Connect 9–20 lần.
 - **Máy chỉ ảnh hưởng số ms tuyệt đối.** Nhanh hay chậm so với RRT-Connect là do thuật toán và bản đồ. Chi phí mỗi vòng so với RRT-Connect gần như không đổi giữa các lần đo trên máy này, và giữa máy này với máy của paper (mục "Máy có quyết định nhanh hay chậm không").
@@ -547,7 +547,8 @@ Theo RRT-FConnect, thuật toán có mặt ở cả hai lượt, thì lượt EB
 
 **Nhận xét:**
 
-1. **RRT-FConnect dùng ít vòng lặp nhất ở cả 6 môi trường, nhưng chậm hơn RRT-Connect 1.4–1.9 lần** (riêng rooms_20 là 1.02).
+1. **RRT-FConnect dùng ít vòng lặp hơn RRT-Connect ở cả 6 môi trường, nhưng chậm hơn RRT-Connect 1.4–1.9 lần** (riêng rooms_20 là 1.02).
+   - So với cả 4 thuật toán, RRT-FConnect dùng ít vòng lặp nhất ở 5/6 môi trường. Riêng ở flappy_40, EBi-RRT có trung bình thấp hơn (49823 so với 55261), nhưng trung bình này chỉ tính trên 7.4% lần chạy thành công, so với 18.5% của RRT-FConnect.
    - Số vòng lặp chỉ giảm 18–45% so với RRT-Connect, trong khi ở blobs_40 giảm 60%.
    - Mỗi vòng lặp của RRT-FConnect lại tốn khoảng gấp đôi: 6.1 so với 3.3 µs ở flappy_10, 4.0 so với 2.0 µs ở rooms_10.
    - Giả thuyết: heuristic chọn cặp dùng khoảng cách đường thẳng và không biết tới tường. Ở flappy/rooms, cặp node gần nhau nhất thường nằm hai bên một bức tường, nên hướng dẫn sai, và thuật toán phải dựa vào chế độ exploration.
@@ -658,7 +659,7 @@ Dựa trên số liệu sạch của lần 9.
 
    Ngoài ra phải giữ chế độ exploration của code gốc, dù paper không nhắc tới. Tắt nó đi thì chậm hơn RRT-Connect 1.8–2.7 lần ở General, Highly và Narrow, và success ở Highly giảm.
 3. **Ngoài paper (flappy/rooms):**
-   - RRT-FConnect vẫn dùng ít vòng lặp nhất, và ở mật độ 40% giải được nhiều bài hơn hẳn (rooms_40: 55.5% so với 8.8% của RRT-Connect và 13.1% của EBi-RRT).
+   - RRT-FConnect vẫn dùng ít vòng lặp hơn RRT-Connect ở cả 6 môi trường, và ở mật độ 40% giải được nhiều bài hơn hẳn (rooms_40: 55.5% so với 8.8% của RRT-Connect và 13.1% của EBi-RRT).
    - EBi-RRT chậm nhất, chậm hơn RRT-Connect 9–20 lần.
    - Nhưng nó chậm hơn RRT-Connect, tới 1.9 lần; riêng rooms_20 thì ngang. Lý do: số vòng lặp chỉ giảm còn 0.55–0.82 lần, không bù được chi phí mỗi vòng cao gấp 1.8–2.5 lần (mục "Máy có quyết định nhanh hay chậm không").
    - Giả thuyết cho việc số vòng giảm ít: heuristic chọn cặp dùng khoảng cách đường thẳng nên không biết tới tường.
