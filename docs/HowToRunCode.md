@@ -15,7 +15,7 @@ Mục tiêu: reproduce RRT-FConnect, tức là chạy tham số Table 1 rồi so
 - [x] Số vòng lặp ở Highly/Narrow cao gấp khoảng 2 lần paper: nguyên nhân chính là code bỏ mẫu nằm trong vật cản (H9 trong KET_QUA_REPRODUCE.md)
 - [x] Lỗi đo thời gian: đồng hồ của WSL bị chỉnh nhảy +1,4 s mỗi khoảng 34 s. Planner giờ đo bằng đồng hồ đơn điệu; máy chạy thí nghiệm phải sửa đồng hồ (mục 2b)
 - [x] Chạy lại sạch mọi thí nghiệm có số liệu thời gian, gồm cả EBi-RRT trên flappy/rooms (lần 9 trong [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md)). Với cấu hình cuối, mọi kết luận của Table 2 đều tái hiện được; cách chạy lại ở mục 6
-- [ ] Multi-Robot (lập kế hoạch tĩnh, sửa đường khi có sự cố): định hướng và bảng theo dõi trong [docs/HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)
+- [ ] Multi-Robot, hai giai đoạn: path planning trên bản đồ tĩnh (đang làm, cách chạy ở mục 7), rồi phối hợp. Định hướng và bảng theo dõi trong [docs/HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md)
 
 Người mới: mục 1 → 2 → 2b → 3 → 4 → 5 (chạy thử).
 
@@ -103,6 +103,12 @@ python3 generate_dataset.py --types flappy rooms --fills 0.1 0.2 0.4   # chỉ f
 
 Mỗi bản đồ gồm `map_i.pcd` và `map_i_scenarios.json` (20 cặp start/goal).
 
+Bản đồ khe hẹp cho phần đa robot (flappy_10, rooms_10 với khe 2, 4, 6 m) nằm ở file riêng, giải nén vào cùng thư mục:
+```bash
+tar -xzf ~/heuristic-guided-BiRRT/dataset_maps_gap.tar.gz -C /home/huy/rrt
+```
+Tự sinh bằng `python3 generate_dataset.py --types flappy rooms --fills 0.1 --gap-width 4`. Mặc định 20 m giữ nguyên các bản đồ cũ.
+
 ## 5. Thí nghiệm hàng loạt
 
 ```bash
@@ -172,6 +178,47 @@ python3 sweep_fconnect.py --summary-only --out $C/sweep_1   # tương tự sweep
 - Sau mỗi lệnh chạy: `python3 check_timing.py <thư mục> --delete`, rồi chạy lại các lệnh ghi vào thư mục đó (map còn kết quả được bỏ qua). Lặp đến khi báo `0 map(s)`, tối đa 3 vòng.
 - Tổng cộng khoảng 7 giờ trên laptop Intel Core Ultra 5 225H, riêng `ebi_new` khoảng 3 giờ. Chỉ cần đối chiếu Table 2 thì chạy lệnh đầu rồi `python3 analyze_results.py $C/full_final`, khoảng 20 phút.
 - Không thể ra trùng từng số, vì planner lấy seed ngẫu nhiên và mỗi máy một tốc độ. So cột `vs RRT-Connect`, không so ms. Ví dụ, tỉ lệ thời gian RRT-FConnect ÷ RRT-Connect của nhóm là 1.11 / 0.74 / 0.63 / 0.92 (Simple / General / Highly / Narrow); lần chạy khác có thể lệch tới khoảng ±20%. Số vòng lặp lệch tới khoảng ±15%; độ dài đường đi và số node chỉ lệch vài phần trăm.
+
+## 7. Multi-Robot: path planning trên bản đồ tĩnh
+
+Phần này nằm trên branch `multi-path-planning`. Định hướng và ý nghĩa các phương pháp: [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md), mục 8.
+
+```bash
+cd ~/heuristic-guided-BiRRT
+catkin_make && source devel/setup.bash
+R=~/rrt_results/multi
+
+# kiểm thử: vùng giao nhau, và các hàm bản đồ so với bản viết riêng bằng Python
+./devel/lib/path_finder/test_multi_zones
+M=/home/huy/rrt/dataset_maps_200x200/blobs_10/map_0.pcd
+roslaunch path_finder multi_robot.launch map_file:=$M self_test_output:=/tmp/self_test.json
+python3 check_multi_map.py $M /tmp/self_test.json
+
+# chạy thử: sinh kịch bản, lập đường, kiểm tra độc lập, in bảng, vẽ một lần chạy
+python3 generate_multi_scenarios.py --envs blobs_10 --maps 1 --N 2 4 --count 2 --out $R/quick/scenarios
+python3 run_multi_experiments.py --scenarios $R/quick/scenarios --maps 1 --trials 2 --out $R/quick/results
+python3 check_multi_paths.py $R/quick/results
+python3 analyze_multi.py $R/quick/results
+python3 plot_multi_paths.py $R/quick/results/blobs_10/map_0_result.json --scenario 0 --method fconnect+reserve --out run.png
+```
+- Kịch bản mặc định gồm 9 môi trường, N = 2, 4, 8, 16, 5 loại, mỗi loại 10 kịch bản. Bỏ `--envs`, `--maps`, `--N`, `--count` để sinh đủ.
+- `--path-trials k`: chỉ lưu đường của k lần chạy đầu mỗi kịch bản (mặc định 1). `check_multi_paths.py` và `plot_multi_paths.py` chỉ dùng được các lần có lưu đường.
+- Chạy lại cùng `--out` thì bản đồ nào đã xong sẽ được bỏ qua.
+- `analyze_multi.py --merge-envs`: gộp mọi môi trường thành một bảng.
+- `--separated-max-n k`: bỏ qua M4 (`fconnect+separated`) khi có hơn k robot, vì đây là phương pháp tốn thời gian nhất.
+- Thời gian tính cho laptop 14 luồng: bài thử nhỏ ở trên khoảng vài phút. Nếu `blobs_40` hoặc `narrow_20` có trong danh sách thì lâu hơn nhiều, vì mỗi robot cần khoảng 1–2 s.
+
+**Thí nghiệm đầy đủ (việc 1.9 của HUONG_DAN_MULTI_ROBOT.md).** 15 môi trường (9 môi trường chính và các biến thể khe của flappy_10, rooms_10), 5 bản đồ, 10 kịch bản mỗi (loại, N), 1 lần chạy. Khoảng 3,6 ngày với một tiến trình:
+```bash
+F=~/rrt_results/multi/full
+python3 generate_multi_scenarios.py --envs blobs_10 blobs_20 blobs_40 narrow_10 narrow_20 flappy_10 flappy_20 rooms_10 rooms_20 \
+  flappy_10_gap2 flappy_10_gap4 flappy_10_gap6 rooms_10_gap2 rooms_10_gap4 rooms_10_gap6 --out $F/scenarios
+nohup python3 -u run_multi_experiments.py --scenarios $F/scenarios --maps 5 --trials 1 --separated-max-n 8 \
+  --time-limit-call 5 --time-limit-total 60 --out $F/results > $F/run.log 2>&1 &
+```
+- Danh sách `--envs` mặc định của `generate_multi_scenarios.py` không có các biến thể khe, nên phải ghi rõ.
+- **Giữ máy thức suốt lúc chạy.** Laptop Modern Standby tự ngủ khi màn hình tắt, và WSL đứng theo (số đo không hỏng vì đo bằng đồng hồ đơn điệu, nhưng thí nghiệm dừng). Cách giữ: một cửa sổ PowerShell gọi `SetThreadExecutionState(0x80000003)` (giữ cả màn hình) rồi chạy một lệnh `wsl` chờ đến khi `run_multi_experiments.py` kết thúc. Cửa sổ đó cũng giữ cho distro WSL không bị tắt. Hoặc đặt "Turn my screen off" khi cắm sạc thành Never.
+- Bị ngắt (khởi động lại máy, ...) thì chạy lại đúng lệnh trên: bản đồ đã xong được bỏ qua, bản đồ đang chạy dở chạy lại từ đầu (kết quả chỉ ghi khi xong cả bản đồ).
 
 ## Lỗi thường gặp
 

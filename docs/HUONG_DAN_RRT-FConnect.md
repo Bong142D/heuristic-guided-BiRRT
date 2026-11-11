@@ -152,6 +152,13 @@ Cấu hình cuối: [paper_table1_final.json](../src/path_finder/config/paper_ta
 - **Đo thời gian:** RRT-Connect (`brrt.h`), GB-RRT-Connect (`goal_bias_brrt.h`), `BRRT_Case1` (`brrt_simple_case1.h`) và RRT-FConnect đo bằng `ros::SteadyTime` thay cho `ros::Time::now()`. Đường đi tìm được không đổi, vì planner dừng theo số vòng lặp; chỉ số đo không còn bị đồng hồ thực chỉnh nhảy.
 - **`CustomLogger`:** bỏ dòng tạo logger ghi vào `/home/huy/rrt` trong `SOF_brrt_simple_case1/2/3.h` và `brrt_simple_case1.h`. Logger này không được dùng, nhưng làm crash khi máy không có thư mục đó.
 - **Build:** `src/CMakeLists.txt` được khôi phục thành symlink tới `toplevel.cmake` của catkin.
+- **Bộ nhớ:** RRT-Connect và RRT-FConnect gọi `kd_free` khi kết thúc `plan`, sau khi đã đo xong thời gian. Trước đó mỗi lần `plan` đều rò cây kd, không ảnh hưởng tới đường đi tìm được.
+
+**Thêm cho đa robot, mặc định tắt:**
+- `seed` trong file JSON tham số: −1 (mặc định) lấy seed ngẫu nhiên như cũ; ≥ 0 thì chạy lặp lại được. Áp dụng cho RRT-Connect, GB-RRT-Connect, `BRRT_Case1` và RRT-FConnect (`set_seed`, `BiasSampler::setSeed`), và được ghi vào JSON kết quả.
+- `set_time_limit` trong `brrt.h` và `SOF_brrt_simple_case3.h`: giới hạn thời gian tìm đường. Mặc định 0 là không giới hạn.
+- `brrt.h`: không vẽ gì khi chưa gọi `setVisualizer`, như RRT-FConnect.
+- `OccMap`: thêm `inflateXY`, `saveBase`, `restoreBase`, `blockDisc`, `blockPath`, `connectedXY`. Các hàm planner đang dùng giữ nguyên.
 
 **Khung thí nghiệm (không đổi thuật toán):**
 - `test_planner.cpp`: chế độ experiment chạy RRT-Connect, GB-RRT-Connect, `BRRT_Case1` và RRT-FConnect qua một hàm chung. Baseline dùng bước ε của file tham số. Mỗi cặp start/goal lặp `trials_per_query` lần. Kết quả ghi độ dài hình học thật (`path_length`) bên cạnh chi phí nội bộ (`path_cost`). Các cờ được truyền vào RRT-FConnect.
@@ -161,7 +168,7 @@ Cấu hình cuối: [paper_table1_final.json](../src/path_finder/config/paper_ta
 
 Các planner và package khác giữ nguyên code gốc.
 
-Chưa sửa: `kd_free` (rò rỉ bộ nhớ), seed ngẫu nhiên, đường dẫn mặc định `/home/huy/rrt` của bộ bản đồ, và việc sinh kịch bản không kiểm tra start/goal có nối được với nhau (flappy_40 có 1/100, rooms_40 có 2/100 bài vô nghiệm).
+Chưa sửa: đường dẫn mặc định `/home/huy/rrt` của bộ bản đồ, và việc sinh kịch bản single robot không kiểm tra start/goal có nối được với nhau (flappy_40 có 1/100, rooms_40 có 2/100 bài vô nghiệm). Kịch bản đa robot thì có kiểm tra.
 
 Các bước: build → dataset → chạy thử → chạy đầy đủ → `analyze_results.py` → so với Table 2. Lệnh xem trong [HowToRunCode.md](HowToRunCode.md).
 Kết quả: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
@@ -170,12 +177,13 @@ Kết quả: [KET_QUA_REPRODUCE.md](KET_QUA_REPRODUCE.md).
 
 Phân tích đầy đủ, các hướng, kế hoạch và bảng theo dõi: [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md). Mục này chỉ là tóm tắt.
 
-Hướng của nhóm là **lập kế hoạch tĩnh**: lập xong đường cho mọi robot trước khi chạy, và chỉ sửa đường khi gặp sự cố.
-- RRT-FConnect giữ nguyên thuật toán, lập đường cho từng robot trên bản đồ tĩnh đã nới vật cản theo bán kính robot.
-- Ở những đoạn hai đường đi sát nhau (vùng giao nhau), kế hoạch quy định robot nào đi qua trước; robot đi sau dừng chờ ở mép vùng.
-- Khi có sự cố (robot trễ, robot hỏng, vật cản mới, lối đi bị đóng), RRT-FConnect lập lại đường cho robot bị ảnh hưởng từ vị trí hiện tại.
+Nhóm làm hai giai đoạn:
+- **Giai đoạn 1, path planning trên bản đồ tĩnh.** RRT-FConnect giữ nguyên thuật toán, lập đường cho từng robot trên bản đồ đã nới vật cản, tránh điểm đầu và đích của robot khác. Các đường được đi gần nhau. Đầu ra là N đường và các vùng giao nhau, chưa có thời gian.
+- **Giai đoạn 2, phối hợp.** Xếp thứ tự qua vùng giao nhau, đặt thời gian chờ và vận tốc.
 
-Cần thêm, ngoài planner: nới vật cản và cập nhật bản đồ khi chạy; tìm vùng giao nhau và thứ tự; bộ mô phỏng thực thi có tiêm sự cố và kiểm tra va chạm giữa các robot; các metric đa robot (SOC, makespan, thời gian chờ, độ trễ phục hồi).
+Sự cố khi chạy nằm ngoài phạm vi.
+
+Cần thêm, ngoài planner: nới và chặn ô trên bản đồ; BFS kiểm tra còn đường; tìm vùng giao nhau; chương trình kiểm tra độc lập; các metric đa robot (success, tổng độ dài, số vùng giao nhau, tỉ lệ chồng chéo, thời gian lập).
 
 Giữ được: `occ_grid`, `kdtree`, `sampler`, RRT-FConnect, các script sinh bản đồ và chạy hàng loạt.
 
@@ -189,4 +197,4 @@ Câu 1–3 đã tự kiểm chứng bằng thực nghiệm (xem KET_QUA_REPRODUC
 4. EBi-RRT là `BRRT_Simple_Case1` hay `Case2`?
 5. Path length trong paper là độ dài thật hay ε × số cạnh?
 6. Mức narrow nào ứng với môi trường narrow passage của paper? K và `gen_min_dist` dùng bao nhiêu?
-7. ~~Multi-Robot theo hướng tập trung, ưu tiên hay CBS?~~ Nhóm chọn lập kế hoạch tĩnh (29/10). Kích thước, động học robot và các câu còn mở: mục 10 của [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md).
+7. ~~Multi-Robot theo hướng tập trung, ưu tiên hay CBS?~~ Nhóm chia hai giai đoạn: path planning trên bản đồ tĩnh, rồi phối hợp (04/11). Kích thước robot và các câu còn mở: mục 10 của [HUONG_DAN_MULTI_ROBOT.md](HUONG_DAN_MULTI_ROBOT.md).
