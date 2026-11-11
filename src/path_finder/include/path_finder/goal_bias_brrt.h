@@ -94,6 +94,14 @@ namespace path_plan
       return solution_cost_time_pair_list_;
     }
 
+    // seed >= 0: repeatable run. The default keeps std::random_device.
+    void set_seed(long seed)
+    {
+      seed_ = seed;
+      plan_count_ = 0;
+      if (seed >= 0)
+        sampler_.setSeed(seed);
+    }
     void setVisualizer(const std::shared_ptr<visualization::Visualization> &visPtr)
     {
       vis_ptr_ = visPtr;
@@ -120,6 +128,8 @@ namespace path_plan
     ros::NodeHandle nh_;
 
     BiasSampler sampler_;
+    long seed_ = -1;
+    long plan_count_ = 0;
 
     double steer_length_;
     double search_time_;
@@ -278,7 +288,7 @@ namespace path_plan
       kdtree *treeB = kdtree_2;
 
       std::random_device rd;
-      std::mt19937 gen(rd());
+      std::mt19937 gen(seed_ >= 0 ? (unsigned)(seed_ + (++plan_count_)) : rd());
       std::uniform_real_distribution<double> dis(0.0, 1.0);
 
       /* main loop */

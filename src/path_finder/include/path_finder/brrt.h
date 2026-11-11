@@ -82,8 +82,11 @@ namespace path_plan
       goal_node_->cost_from_start = 0.0; // important
       valid_tree_node_nums_ = 2;         // put start and goal in tree
 
-      vis_ptr_->visualize_a_ball(s, 1.5, "start", visualization::Color::pink);
-      vis_ptr_->visualize_a_ball(g, 1.5, "goal", visualization::Color::steelblue);
+      if (vis_ptr_)
+      {
+        vis_ptr_->visualize_a_ball(s, 1.5, "start", visualization::Color::pink);
+        vis_ptr_->visualize_a_ball(g, 1.5, "goal", visualization::Color::steelblue);
+      }
 
       return brrt(s, g);
     }
@@ -103,6 +106,17 @@ namespace path_plan
       return solution_cost_time_pair_list_;
     }
 
+    // seed >= 0: repeatable run. The default keeps std::random_device.
+    void set_seed(long seed)
+    {
+      if (seed >= 0)
+        sampler_.setSeed(seed);
+    }
+    // seconds > 0: stop searching after this long. The default 0 means no time limit.
+    void set_time_limit(double seconds)
+    {
+      time_limit_ = seconds;
+    }
     void setVisualizer(const std::shared_ptr<visualization::Visualization> &visPtr)
     {
       vis_ptr_ = visPtr;
@@ -138,6 +152,7 @@ namespace path_plan
     int number_of_iterations_;
     double first_path_use_time_;
     double final_path_use_time_;
+    double time_limit_ = 0.0;
 
     double cost_best_;
     std::vector<TreeNode *> nodes_pool_;
@@ -290,6 +305,9 @@ namespace path_plan
       number_of_iterations_ = 0;
       for (number_of_iterations_ = 0; number_of_iterations_ < max_iteration_; ++number_of_iterations_)
       {
+        if (time_limit_ > 0 && (number_of_iterations_ & 63) == 0 && (ros::SteadyTime::now() - rrt_start_time).toSec() > time_limit_)
+          break;
+
         /* random sampling */
         Eigen::Vector3d x_rand;
         sampler_.samplingOnce(x_rand);
@@ -410,10 +428,13 @@ namespace path_plan
         ROS_ERROR_STREAM("[BRRT]: NOT CONNECTED TO GOAL after " << (ros::SteadyTime::now() - rrt_start_time).toSec() << " seconds"<< " number_of_iterations_ " <<  number_of_iterations_ ) ;
       }
 #endif
+      kd_free(kdtree_1);
+      kd_free(kdtree_2);
       return tree_connected;
     }
 
     void visualizeWholeTree(){
+      if (!vis_ptr_) return;
       // Sample and visualize the resultant tree
         vector<Eigen::Vector3d> vertice;
         vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> edges;

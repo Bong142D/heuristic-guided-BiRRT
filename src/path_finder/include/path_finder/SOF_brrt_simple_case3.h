@@ -149,6 +149,19 @@ namespace path_plan
       explore_trigger_ = std::max(1, explore_trigger);
       explore_len_ = std::max(0, explore_len);
     }
+    // seed >= 0: repeatable run. The default keeps std::random_device.
+    void set_seed(long seed)
+    {
+      seed_ = seed;
+      plan_count_ = 0;
+      if (seed >= 0)
+        sampler_.setSeed(seed);
+    }
+    // seconds > 0: stop searching after this long. The default 0 means no time limit.
+    void set_time_limit(double seconds)
+    {
+      time_limit_ = seconds;
+    }
     void setVisualizer(const std::shared_ptr<visualization::Visualization> &visPtr)
     {
       vis_ptr_ = visPtr;
@@ -218,6 +231,9 @@ namespace path_plan
     bool apf_always_ = false;
     int explore_trigger_ = 20;
     int explore_len_ = 50;
+    long seed_ = -1;
+    long plan_count_ = 0;
+    double time_limit_ = 0.0;
     bool step_mode_ = false;
     int  step_interval_ = 1;
     std::atomic<bool> next_step_{false};
@@ -647,7 +663,7 @@ namespace path_plan
       kdtree *treeB = kdtree_2;
 
       std::random_device rd;                                // Seed
-      std::mt19937 gen(rd());                               // Mersenne Twister engine
+      std::mt19937 gen(seed_ >= 0 ? (unsigned)(seed_ + (++plan_count_)) : rd()); // Mersenne Twister engine
       std::uniform_real_distribution<double> dis(0.0, 1.0); // Uniform distribution [0,1)
 
       /* main loop */
@@ -658,6 +674,9 @@ namespace path_plan
 
       for (number_of_iterations_ = 0; number_of_iterations_ < max_iteration_; ++number_of_iterations_)
       {
+        if (time_limit_ > 0 && (number_of_iterations_ & 63) == 0 && (ros::SteadyTime::now() - rrt_start_time).toSec() > time_limit_)
+          break;
+
         bool in_exploration = (exploration_mode_count > 0);
         if (in_exploration) {
           exploration_mode_count--;
@@ -918,6 +937,8 @@ namespace path_plan
         ROS_ERROR_STREAM("[SOF_BRRT_Optimize_case3]: NOT CONNECTED TO GOAL after " << (ros::SteadyTime::now() - rrt_start_time).toSec() << " seconds");
       }
 #endif
+      kd_free(kdtree_1);
+      kd_free(kdtree_2);
       return tree_connected;
     }
 

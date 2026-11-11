@@ -328,6 +328,16 @@ public:
         manager = new BRRTExperimentMultiAlgo(
         input_param_,
         output_result_);
+
+        const long seed = manager->get_input().seed;
+        if (seed >= 0)
+        {
+            sampler_.setSeed(seed);
+            brrt_ptr_->set_seed(seed);
+            goal_bias_brrt_ptr_->set_seed(seed);
+            brrt_simple_case1_ptr_->set_seed(seed);
+            sof_brrt_simple_case3_ptr_->set_seed(seed);
+        }
     }
     ~TesterPathFinder()
     {

@@ -79,10 +79,24 @@ namespace env
       return true;
     }
 
+    // Multi-robot helpers. They only write occupancy_buffer_, so isStateValid and isSegmentValid
+    // stay as they are. They work on the XY plane, on every z layer above the floor layer.
+    // A cell is blocked as soon as any part of its square is closer than `radius` to the shape, so
+    // every point of a free cell is at least `radius` away from it.
+    void inflateXY(double radius);
+    void saveBase();
+    void restoreBase();
+    void blockDisc(const Eigen::Vector3d &center, double radius);
+    void blockPath(const std::vector<Eigen::Vector3d> &path, double radius);
+    bool connectedXY(const Eigen::Vector3d &a, const Eigen::Vector3d &b) const;
+
     typedef shared_ptr<OccMap> Ptr;
 
   private:
     std::vector<bool> occupancy_buffer_;
+    std::vector<bool> base_buffer_;
+    bool columnOccupied(int x, int y) const;
+    void setColumn(int x, int y);
 
     // map property
     Eigen::Vector3i grid_size_; // map size in index

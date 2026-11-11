@@ -18,6 +18,8 @@ def main():
     p.add_argument("--fills", nargs="+", type=float, default=[0.1, 0.2, 0.4])
     p.add_argument("--maps", type=int, default=5, help="maps per environment")
     p.add_argument("--out", default="/home/huy/rrt/dataset_maps_200x200")
+    p.add_argument("--gap-width", type=float, default=20.0,
+                   help="width of the gaps in narrow, flappy and rooms; any other value than 20 adds _gap<width> to the folder name")
     args = p.parse_args()
     map_types, fill_levels, num_maps, base_out_dir = args.types, args.fills, args.maps, args.out
 
@@ -27,6 +29,8 @@ def main():
     for m_type in map_types:
         for fill in fill_levels:
             dir_name = "{}_{}".format(m_type, int(fill * 100))
+            if args.gap_width != 20.0:
+                dir_name += "_gap{:g}".format(args.gap_width)
             full_path = os.path.join(base_out_dir, dir_name)
             if not os.path.exists(full_path):
                 os.makedirs(full_path)
@@ -45,7 +49,8 @@ def main():
                     "_fill_level:={}".format(fill),
                     "_map/x_size:=200.0",
                     "_map/y_size:=200.0",
-                    "_fail_limit:=1000000"
+                    "_fail_limit:=1000000",
+                    "_gap_width:={}".format(args.gap_width)
                 ]
                 map_proc = subprocess.Popen(map_cmd)
                 

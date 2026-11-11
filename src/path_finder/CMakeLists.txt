@@ -42,3 +42,17 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
+
+add_executable(multi_robot_node
+  src/multi_robot_node.cpp
+  src/kdtree.c
+)
+
+target_link_libraries(multi_robot_node
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+add_executable(test_multi_zones
+  test/test_multi_zones.cpp
+)

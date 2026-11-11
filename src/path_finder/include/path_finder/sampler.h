@@ -40,6 +40,13 @@ public:
     GUILD_informed_ = false;
   };
 
+  // Restart the random sequence from `seed`, so that a run can be repeated.
+  void setSeed(uint64_t seed)
+  {
+    gen_.seed(seed);
+    normal_rand_.reset();
+  }
+
   void setSamplingRange(const Eigen::Vector3d origin, const Eigen::Vector3d range)
   {
     origin_ = origin;

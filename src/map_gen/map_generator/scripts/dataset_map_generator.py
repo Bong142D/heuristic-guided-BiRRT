@@ -136,7 +136,7 @@ class DatasetMapGenerator(object):
             # 2 big box obstacles (barriers) spanning from 15% to 85% of map height
             # Between them is a corridor with gap_width = 20
             # Then fill box obstacles = fill level up * remaining volume
-            gap_w = 20.0
+            gap_w = float(self.gap_width)
             wall_y_low = -self.dimy / 2 + 0.15 * self.dimy
             wall_y_high = -self.dimy / 2 + 0.85 * self.dimy
             wall_height = wall_y_high - wall_y_low
